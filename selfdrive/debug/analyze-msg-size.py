@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
   # Print sorted table
   print()
-  print(f"{'Service':<36} {'Min (KB)':>12} {'Max (KB)':>12} {'Avg (KB)':>12} {'KB/min':>12} {'KB/sec':>12} {'Minutes in 10MB':>18} {'Seconds in 500KB':>18}")
+  print(f"{'Service':<36} {'Min (KB)':>12} {'Max (KB)':>12} {'Avg (KB)':>12} {'KB/min':>12} {'KB/sec':>12} {'Minutes in 10MB':>18} {'Seconds in 1MB':>18}")
   print("-" * 132)
   def sort_key(x):
     k, v = x
@@ -33,7 +33,7 @@ if __name__ == "__main__":
   total_kb_per_min = 0.0
   RINGBUFFER_SIZE_MB = 10  # this is the current MSGQ ringbuffer size
   RINGBUFFER_SIZE_KB = RINGBUFFER_SIZE_MB * 1024
-  SMALL_BUFFER_SIZE_KB = 500  # 500KB buffer
+  SMALL_BUFFER_SIZE_KB = 1024  # 1MB buffer
   for k, v in sorted(szs.items(), key=sort_key, reverse=True):
     avg = v['sum'] / v['count']
     freq = SERVICE_LIST.get(k, None)
@@ -41,26 +41,16 @@ if __name__ == "__main__":
     kb_per_min = (avg * freq_val * 60) / 1024 if freq_val > 0 else 0.0
     kb_per_sec = kb_per_min / 60
     minutes_in_buffer = RINGBUFFER_SIZE_KB / kb_per_min if kb_per_min > 0 else float('inf')
-    seconds_in_500kb = (SMALL_BUFFER_SIZE_KB / kb_per_sec) if kb_per_sec > 0 else float('inf')
+    seconds_in_1mb = (SMALL_BUFFER_SIZE_KB / kb_per_sec) if kb_per_sec > 0 else float('inf')
     total_kb_per_min += kb_per_min
     min_str = f"{minutes_in_buffer:.2f}" if minutes_in_buffer != float('inf') else "inf"
-    sec_500kb_str = f"{seconds_in_500kb:.2f}" if seconds_in_500kb != float('inf') else "inf"
-    print(f"{k:<36} {v['min']/1024:>12.2f} {v['max']/1024:>12.2f} {avg/1024:>12.2f} {kb_per_min:>12.2f} {kb_per_sec:>12.2f} {min_str:>18} {sec_500kb_str:>18}")
+    sec_1mb_str = f"{seconds_in_1mb:.2f}" if seconds_in_1mb != float('inf') else "inf"
+    print(f"{k:<36} {v['min']/1024:>12.2f} {v['max']/1024:>12.2f} {avg/1024:>12.2f} {kb_per_min:>12.2f} {kb_per_sec:>12.2f} {min_str:>18} {sec_1mb_str:>18}")
 
   # Summary section
   print()
   print(f"Total usage: {total_kb_per_min / 1024:.2f} MB/min")
 
-  # Calculate total memory usage based on big_queue flag
-  total_memory_mb = 0.0
-  big_queue_count = 0
-  small_queue_count = 0
-  for service in SERVICE_LIST.values():
-    if service.big_queue:
-      total_memory_mb += 1  # 1MB for big_queue
-      big_queue_count += 1
-    else:
-      total_memory_mb += 0.5  # 500KB for small_queue
-      small_queue_count += 1
-
-  print(f"Total ringbuffer memory: {total_memory_mb:.2f} MB ({big_queue_count} services @ 1MB, {small_queue_count} services @ 500KB)")
+  # Calculate total memory usage (all services use 1MB ringbuffer)
+  total_memory_mb = len(SERVICE_LIST) * 1.0
+  print(f"Total ringbuffer memory: {total_memory_mb:.2f} MB ({len(SERVICE_LIST)} services @ 1MB each)")
