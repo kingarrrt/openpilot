@@ -92,7 +92,6 @@ class Replay:
     self._seeking_to = -1.0
     self._route_start_ts = 0
     self._cur_mono_time = 0
-    self._route_date_time = 0
     self._min_seconds = 0.0
     self._max_seconds = 0.0
     self._speed = 1.0
@@ -302,14 +301,6 @@ class Replay:
     self._route_start_ts = events[0].logMonoTime
     self._cur_mono_time = self._route_start_ts - 1
 
-    # Get datetime from initData
-    for evt in events:
-      if evt.which() == 'initData':
-        wall_time = evt.initData.wallTimeNanos
-        if wall_time > 0:
-          self._route_date_time = wall_time // 1000000
-        break
-
     # Write CarParams
     for evt in events:
       if evt.which() == 'carParams':
@@ -337,7 +328,6 @@ class Replay:
     self._timeline.initialize(
       self._seg_mgr.route,
       self._route_start_ts,
-      not (self._flags & ReplayFlags.NO_FILE_CACHE),
       lambda lr: self.on_qlog_loaded(lr) if self.on_qlog_loaded else None
     )
 
@@ -495,7 +485,7 @@ def main():
   parser.add_argument('route', nargs='?', default='', help='Route to replay')
   parser.add_argument('-a', '--allow', type=str, default='', help='Whitelist of services (comma-separated)')
   parser.add_argument('-b', '--block', type=str, default='', help='Blacklist of services (comma-separated)')
-  parser.add_argument('-c', '--cache', type=int, default=-1, help='Number of segments to cache')
+  parser.add_argument('-c', '--buffer', type=int, default=-1, help='Number of segments to buffer in memory')
   parser.add_argument('-s', '--start', type=int, default=0, help='Start from <seconds>')
   parser.add_argument('-x', '--playback', type=float, default=-1, help='Playback speed')
   parser.add_argument('-d', '--data_dir', type=str, default='', help='Local directory with routes')
@@ -504,7 +494,6 @@ def main():
   parser.add_argument('--dcam', action='store_true', help='Load driver camera')
   parser.add_argument('--ecam', action='store_true', help='Load wide road camera')
   parser.add_argument('--no-loop', action='store_true', help='Stop at end of route')
-  parser.add_argument('--no-cache', action='store_true', help='Disable local cache')
   parser.add_argument('--qcam', action='store_true', help='Load qcamera')
   parser.add_argument('--no-vipc', action='store_true', help='Do not output video')
   parser.add_argument('--all', action='store_true', help='Output all messages')
@@ -528,8 +517,6 @@ def main():
     flags |= ReplayFlags.ECAM
   if args.no_loop:
     flags |= ReplayFlags.NO_LOOP
-  if args.no_cache:
-    flags |= ReplayFlags.NO_FILE_CACHE
   if args.qcam:
     flags |= ReplayFlags.QCAMERA
   if args.no_vipc:
@@ -555,8 +542,8 @@ def main():
     data_dir=args.data_dir
   )
 
-  if args.cache > 0:
-    replay.segment_cache_limit = args.cache
+  if args.buffer > 0:
+    replay.segment_cache_limit = args.buffer
 
   if args.playback > 0:
     replay.speed = max(0.2, min(8.0, args.playback))

@@ -6,11 +6,11 @@ from enum import Enum, IntFlag, auto
 from typing import Callable, Optional
 
 from openpilot.selfdrive.test.process_replay.migration import migrate_all
-
-log = logging.getLogger("replay")
 from openpilot.tools.lib.logreader import LogReader
 from openpilot.tools.lib.route import Route, Segment
 from openpilot.tools.lib.framereader import FrameReader
+
+log = logging.getLogger("replay")
 
 MIN_SEGMENTS_CACHE = 5
 
@@ -20,7 +20,6 @@ class ReplayFlags(IntFlag):
   DCAM = 0x0002
   ECAM = 0x0004
   NO_LOOP = 0x0010
-  NO_FILE_CACHE = 0x0020
   QCAMERA = 0x0040
   NO_VIPC = 0x0400
   ALL_SERVICES = 0x0800

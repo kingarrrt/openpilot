@@ -47,11 +47,11 @@ class Timeline:
     if self._thread is not None and self._thread.is_alive():
       self._thread.join()
 
-  def initialize(self, route, route_start_ts: int, local_cache: bool,
+  def initialize(self, route, route_start_ts: int,
                  callback: Callable[[LogReader], None]) -> None:
     self._thread = threading.Thread(
       target=self._build_timeline,
-      args=(route, route_start_ts, local_cache, callback),
+      args=(route, route_start_ts, callback),
       daemon=True
     )
     self._thread.start()
@@ -90,7 +90,7 @@ class Timeline:
     with self._lock:
       return list(self._entries)
 
-  def _build_timeline(self, route, route_start_ts: int, local_cache: bool,
+  def _build_timeline(self, route, route_start_ts: int,
                       callback: Callable[[LogReader], None]) -> None:
     current_engaged_idx: Optional[int] = None
     current_alert_idx: Optional[int] = None

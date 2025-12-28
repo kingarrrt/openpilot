@@ -2,6 +2,7 @@
 import logging
 import queue
 import threading
+import time
 import traceback
 from enum import Enum, auto
 from typing import Optional
@@ -187,4 +188,4 @@ class CameraServer:
       with self._publishing_lock:
         if self._publishing <= 0:
           break
-      threading.Event().wait(0.001)  # Small sleep to avoid busy waiting
+      time.sleep(0.001)
