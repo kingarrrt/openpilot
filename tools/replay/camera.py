@@ -35,28 +35,22 @@ def repack_nv12_to_venus(yuv: np.ndarray, width: int, height: int, stride: int) 
   VisionIPC expects VENUS-aligned stride (128-byte aligned).
   """
   y_plane_size = width * height
-  uv_plane_size = width * height // 2
 
-  # Split into Y and UV planes
+  # Reshape into planes
   y_plane = yuv[:y_plane_size].reshape(height, width)
-  uv_plane = yuv[y_plane_size:y_plane_size + uv_plane_size].reshape(height // 2, width)
+  uv_plane = yuv[y_plane_size:].reshape(height // 2, width)
 
-  # Create output buffer with VENUS stride
+  # Calculate VENUS-aligned scanlines
   y_scanlines = (height + 31) & ~31
   uv_scanlines = (height // 2 + 31) & ~31
 
-  out = np.zeros(stride * y_scanlines + stride * uv_scanlines, dtype=np.uint8)
+  # Create padded planes with VENUS stride using numpy pad
+  # Pad width: (0 padding before, stride-width padding after) for axis 1
+  y_padded = np.pad(y_plane, ((0, y_scanlines - height), (0, stride - width)), mode='constant')
+  uv_padded = np.pad(uv_plane, ((0, uv_scanlines - height // 2), (0, stride - width)), mode='constant')
 
-  # Copy Y plane line by line with new stride
-  for i in range(height):
-    out[i * stride:i * stride + width] = y_plane[i]
-
-  # Copy UV plane line by line with new stride
-  uv_offset = stride * y_scanlines
-  for i in range(height // 2):
-    out[uv_offset + i * stride:uv_offset + i * stride + width] = uv_plane[i]
-
-  return out
+  # Concatenate and flatten
+  return np.concatenate([y_padded.ravel(), uv_padded.ravel()])
 
 
 class CameraType(Enum):
