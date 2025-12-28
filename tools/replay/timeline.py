@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import threading
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Callable, Optional
+from typing import Optional
 
 from openpilot.tools.lib.logreader import LogReader
 from openpilot.selfdrive.test.process_replay.migration import migrate_all

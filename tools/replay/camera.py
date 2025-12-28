@@ -3,7 +3,6 @@ import logging
 import queue
 import threading
 import time
-import traceback
 from enum import Enum
 from typing import Optional
 
@@ -187,8 +186,8 @@ class CameraServer:
           cam.prefetch_up_to += 1
           self._get_frame(fr, cam.prefetch_up_to)
 
-      except Exception as e:
-        log.error(f"camera[{cam.type.name}] error: {e}\n{traceback.format_exc()}")
+      except Exception:
+        log.exception(f"camera[{cam.type.name}] error")
 
       with self._publishing_lock:
         self._publishing -= 1

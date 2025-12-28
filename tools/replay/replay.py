@@ -6,8 +6,9 @@ import sys
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Optional
 
 import cereal.messaging as messaging
 from cereal.services import SERVICE_LIST
@@ -68,7 +69,7 @@ DEMO_ROUTE = "a2a0ccea32023010|2023-07-27--13-01-19"
 
 
 class Replay:
-  def __init__(self, route: str, allow: list[str] = None, block: list[str] = None,
+  def __init__(self, route: str, allow: Optional[list[str]] = None, block: Optional[list[str]] = None,
                sm=None, flags: int = 0, data_dir: str = ""):
     self._sm = sm
     self._flags = flags

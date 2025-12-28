@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import logging
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, auto
-from typing import Callable, Optional
+from typing import Optional
 
 from openpilot.selfdrive.test.process_replay.migration import migrate_all
 from openpilot.tools.lib.logreader import LogReader
@@ -81,14 +82,14 @@ class SegmentManager:
       self._thread.join()
 
   @property
-  def route(self) -> Route:
+  def route(self) -> Optional[Route]:
     return self._route
 
   def load(self) -> bool:
     try:
       self._route = Route(self._route_name, data_dir=self._data_dir)
-    except Exception as e:
-      log.error(f"failed to load route: {self._route_name}: {e}")
+    except Exception:
+      log.exception(f"failed to load route: {self._route_name}")
       return False
 
     # Initialize segment slots for all available segments

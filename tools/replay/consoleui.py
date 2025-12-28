@@ -10,7 +10,6 @@ from typing import Optional
 import cereal.messaging as messaging
 
 from openpilot.tools.replay.replay import Replay
-from openpilot.tools.replay.seg_mgr import ReplayFlags
 from openpilot.tools.replay.timeline import FindFlag, TimelineType
 
 
@@ -91,7 +90,7 @@ class ConsoleUI:
   def __init__(self, replay: Replay):
     self.replay = replay
     self.status = Status.PLAYING
-    self.windows: dict[Win, Optional[curses.window]] = {w: None for w in Win}
+    self.windows: dict[Win, Optional[curses.window]] = dict.fromkeys(Win, None)
     self.max_width = 0
     self.max_height = 0
 
@@ -141,7 +140,7 @@ class ConsoleUI:
     # Title bar
     self.windows[Win.TITLE] = curses.newwin(1, self.max_width, 0, 0)
     self.windows[Win.TITLE].bkgd(' ', curses.A_REVERSE)
-    self.windows[Win.TITLE].addstr(0, 3, "openpilot replay (Python)")
+    self.windows[Win.TITLE].addstr(0, 3, "openpilot replay")
 
     # Stats
     self.windows[Win.STATS] = curses.newwin(2, self.max_width - 2 * BORDER_SIZE, 2, BORDER_SIZE)
