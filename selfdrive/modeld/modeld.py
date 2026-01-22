@@ -207,8 +207,7 @@ class ModelState:
 
 
     for key in bufs.keys():
-      if key not in self.full_frames:
-        self.full_frames[key] = Tensor.from_blob(bufs[key].data.ctypes.data, (self.frame_buf_params[key][3],), dtype='uint8').realize()
+      self.full_frames[key] = Tensor.from_blob(bufs[key].data.ctypes.data, (self.frame_buf_params[key][3],), dtype='uint8').realize()
       self.transforms_np[key][:,:] = transforms[key][:,:]
 
     out = self.update_imgs(self.img_queues['img'], self.full_frames['img'], self.transforms['img'],
