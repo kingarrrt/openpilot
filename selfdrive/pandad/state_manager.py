@@ -1,7 +1,7 @@
 import os
 from cereal import car, log
 import cereal.messaging as messaging
-from panda.python import PANDA_BUS_CNT
+from panda.python import PANDA_CAN_CNT
 
 SPOOFING_STARTED = os.getenv("STARTED") == "1"
 
@@ -44,7 +44,7 @@ class PandaStateManager:
       self._fill_state(ps, self.hw_types[i], health)
 
       # Fill can state
-      for j in range(PANDA_BUS_CNT):
+      for j in range(PANDA_CAN_CNT):
         can_health = panda.can_health(j)
         can_state = ps.init(f'canState{j}')
         self._fill_can_state(can_state, can_health)
