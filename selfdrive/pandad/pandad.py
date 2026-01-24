@@ -66,7 +66,6 @@ def main() -> None:
   # signal pandad to close the relay and exit
   evt = threading.Event()
   count = 0
-  first_run = True
   params = Params()
   no_internal_panda_count = 0
   pandas: list[Panda] = []
@@ -135,13 +134,7 @@ def main() -> None:
           params.put_bool("PandaSomResetTriggered", True)
           cloudlog.event("panda.som_reset_triggered", health=health, serial=panda.get_usb_serial())
 
-        if first_run:
-          # reset panda to ensure we're in a good state
-          cloudlog.info(f"Resetting panda {panda.get_usb_serial()}")
-          panda.reset(reconnect=True)
-
       evt.clear()
-      first_run = False
       runner = PandaRunner(panda_serials, pandas)
       runner.run(evt)
 
