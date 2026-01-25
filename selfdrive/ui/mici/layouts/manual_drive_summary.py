@@ -7,14 +7,14 @@ Poker hand themed with waddle/jacket references.
 """
 
 import json
-import time
 import pyray as rl
 from typing import Optional, Callable
 
 from openpilot.common.params import Params
 from openpilot.system.ui.lib.application import gui_app, FontWeight, FONT_SCALE
+from openpilot.system.ui.lib.scroll_panel2 import GuiScrollPanel2
 from openpilot.system.ui.lib.wrap_text import wrap_text
-from openpilot.system.ui.widgets import Widget
+from openpilot.system.ui.widgets import NavWidget
 
 
 # Colors
@@ -31,7 +31,7 @@ BG_CARD = rl.Color(45, 45, 45, 255)
 # Poker hand names
 HAND_NAMES = {
   "A": "Aces",
-  "K": "Kings", 
+  "K": "Kings",
   "Q": "Queens",
   "J": "Jacks",
   "10": "10s"
@@ -46,25 +46,27 @@ HAND_SUBTITLES = {
 }
 
 
-class ManualDriveSummaryDialog(Widget):
+class ManualDriveSummaryDialog(NavWidget):
   """Modal dialog showing end-of-drive manual transmission stats"""
 
   def __init__(self, dismiss_callback: Optional[Callable] = None):
     super().__init__()
     self._params = Params()
-    self._dismiss_callback = dismiss_callback
+    self._scroll_panel = GuiScrollPanel2(horizontal=False)
     self._session_data: Optional[dict] = None
     self._historical_data: Optional[dict] = None
     self._overall_grade: str = "good"  # good, ok, poor
     self._card_rank: str = "10"  # Poker card rank: 10, J, Q, K, A
     self._shift_score: float = 0.0
     self._avg_shift_score: float = 0.0
-    self._show_time: float = 0.0
-    self._auto_dismiss_after: float = 30.0  # Auto dismiss after 30 seconds
+    # Load data immediately since show_event may not be called for modals
+    self._load_session()
+    self._load_historical()
+    # Set back callback to dismiss modal
+    self.set_back_callback(lambda: gui_app.set_modal_overlay(None))
 
   def show_event(self):
     super().show_event()
-    self._show_time = time.monotonic()
     self._load_session()
     self._load_historical()
 
@@ -233,86 +235,77 @@ class ManualDriveSummaryDialog(Widget):
 
     return " ".join(messages)
 
-  def _handle_mouse_release(self, _):
-    """Dismiss on tap"""
-    if self._dismiss_callback:
-      self._dismiss_callback()
-    gui_app.dismiss_modal()
+  def _measure_content_height(self) -> int:
+    """Calculate total content height for scrolling"""
+    font_roman = gui_app.font(FontWeight.ROMAN)
+    h = 0
+    h += 50   # Header
+    h += 38   # Card rank
+    h += 35   # Duration
+    h += 75   # Shift score bar
+    h += 195  # Stats card
+    # Encouragement text (estimate)
+    encouragement = self._get_encouragement_text()
+    wrapped = wrap_text(font_roman, encouragement, 22, 500)
+    h += len(wrapped) * 28 + 20
+    return h
 
   def _render(self, rect: rl.Rectangle):
-    if not self._session_data:
-      # Auto-dismiss if no data
-      if self._dismiss_callback:
-        self._dismiss_callback()
-      gui_app.dismiss_modal()
-      return
+    # Content area with scrolling
+    content_rect = rl.Rectangle(rect.x + 10, rect.y + 10, rect.width - 20, rect.height - 20)
+    content_height = self._measure_content_height()
+    scroll_offset = round(self._scroll_panel.update(content_rect, content_height))
 
-    # Auto-dismiss after timeout
-    if time.monotonic() - self._show_time > self._auto_dismiss_after:
-      if self._dismiss_callback:
-        self._dismiss_callback()
-      gui_app.dismiss_modal()
-      return
-
-    # Draw semi-transparent background
-    rl.draw_rectangle(0, 0, gui_app.width, gui_app.height, rl.Color(0, 0, 0, 180))
-
-    # Dialog dimensions
-    dialog_w = min(520, gui_app.width - 40)
-    dialog_h = min(680, gui_app.height - 40)
-    dialog_x = (gui_app.width - dialog_w) // 2
-    dialog_y = (gui_app.height - dialog_h) // 2
-
-    # Draw dialog background
-    rl.draw_rectangle_rounded(
-      rl.Rectangle(dialog_x, dialog_y, dialog_w, dialog_h),
-      0.03, 10, BG_COLOR
-    )
-
-    # Content area
-    x = dialog_x + 25
-    y = dialog_y + 20
-    w = dialog_w - 50
+    x = int(content_rect.x) + 20  # Padding on left
+    y = int(content_rect.y) + scroll_offset
+    w = int(content_rect.width) - 40  # Padding on both sides
 
     font_bold = gui_app.font(FontWeight.BOLD)
     font_medium = gui_app.font(FontWeight.MEDIUM)
     font_roman = gui_app.font(FontWeight.ROMAN)
 
+    # Enable scissor mode to clip content
+    rl.begin_scissor_mode(int(content_rect.x), int(content_rect.y), int(content_rect.width), int(content_rect.height))
+
+    # Top section card background (header, hand, duration, score bar)
+    top_card_h = 200
+    rl.draw_rectangle_rounded(rl.Rectangle(x, y, w, top_card_h), 0.02, 10, BG_CARD)
+
     # Header
     header_text, header_color = self._get_header_text()
-    rl.draw_text_ex(font_bold, header_text, rl.Vector2(x, y), 44, 0, header_color)
-    y += 50
+    rl.draw_text_ex(font_bold, header_text, rl.Vector2(x + 15, y + 12), 44, 0, header_color)
+    y += 58
 
     # Card rank display - poker hand style with subtitle
     card_color = GREEN if self._card_rank in ("A", "K") else (YELLOW if self._card_rank in ("Q", "J") else RED)
     card_text = f"Your hand: {HAND_NAMES[self._card_rank]}"
-    rl.draw_text_ex(font_medium, card_text, rl.Vector2(x, y), 28, 0, card_color)
+    rl.draw_text_ex(font_medium, card_text, rl.Vector2(x + 15, y), 28, 0, card_color)
     # Subtitle
     subtitle = HAND_SUBTITLES[self._card_rank]
     subtitle_width = rl.measure_text_ex(font_roman, subtitle, 20, 0).x
-    rl.draw_text_ex(font_roman, subtitle, rl.Vector2(x + w - subtitle_width, y + 4), 20, 0, card_color)
+    rl.draw_text_ex(font_roman, subtitle, rl.Vector2(x + w - subtitle_width - 35, y + 4), 20, 0, card_color)
     y += 38
 
     # Duration
-    duration = self._session_data.get('duration', 0)
+    duration = self._session_data.get('duration', 0) if self._session_data else 0
     duration_min = int(duration // 60)
     duration_sec = int(duration % 60)
     rl.draw_text_ex(font_roman, f"Drive: {duration_min}:{duration_sec:02d}",
-                    rl.Vector2(x, y), 22, 0, GRAY)
+                    rl.Vector2(x + 15, y), 22, 0, GRAY)
     y += 35
 
     # Shift Score Progress Bar with comparison
-    y = self._draw_score_bar(x, y, w, "Shift Score", self._shift_score, self._avg_shift_score)
+    y = self._draw_score_bar(x + 15, y, w - 30, "Shift Score", self._shift_score, self._avg_shift_score)
     y += 15
 
     # Stats in a card
-    rl.draw_rectangle_rounded(rl.Rectangle(x, y, w, 180), 0.02, 10, BG_CARD)
+    rl.draw_rectangle_rounded(rl.Rectangle(x, y, w, 190), 0.02, 10, BG_CARD)
     card_x = x + 15
     card_y = y + 12
 
     # Jackets section (stalls + lugs)
-    stalls = self._session_data.get('stall_count', 0)
-    lugs = self._session_data.get('lug_count', 0)
+    stalls = self._session_data.get('stall_count', 0) if self._session_data else 0
+    lugs = self._session_data.get('lug_count', 0) if self._session_data else 0
     jackets_text = "Jackets:" if (stalls > 0 or lugs > 0) else "No Jackets!"
     jackets_color = RED if stalls > 0 else (YELLOW if lugs > 0 else GREEN)
     rl.draw_text_ex(font_medium, jackets_text, rl.Vector2(card_x, card_y), 24, 0, jackets_color)
@@ -326,21 +319,22 @@ class ManualDriveSummaryDialog(Widget):
     rl.draw_text_ex(font_medium, "Waddle Stats:", rl.Vector2(card_x, card_y), 24, 0, WHITE)
     card_y += 30
 
-    launch_total = self._session_data.get('launch_count', 0)
-    launch_good = self._session_data.get('launch_good', 0)
-    upshift_total = self._session_data.get('upshift_count', 0)
-    upshift_good = self._session_data.get('upshift_good', 0)
-    downshift_total = self._session_data.get('downshift_count', 0)
-    downshift_good = self._session_data.get('downshift_good', 0)
+    upshift_total = self._session_data.get('upshift_count', 0) if self._session_data else 0
+    upshift_good = self._session_data.get('upshift_good', 0) if self._session_data else 0
+    downshift_total = self._session_data.get('downshift_count', 0) if self._session_data else 0
+    downshift_good = self._session_data.get('downshift_good', 0) if self._session_data else 0
+    launch_total = self._session_data.get('launch_count', 0) if self._session_data else 0
+    launch_good = self._session_data.get('launch_good', 0) if self._session_data else 0
 
     if launch_total > 0:
       card_y = self._draw_mini_stat(card_x, card_y, w - 30, "Launches", f"{launch_good}/{launch_total}", launch_total, False, launch_good)
+
     total_shifts = upshift_total + downshift_total
     total_good = upshift_good + downshift_good
     if total_shifts > 0:
       card_y = self._draw_mini_stat(card_x, card_y, w - 30, "Shifts", f"{total_good}/{total_shifts}", total_shifts, False, total_good)
 
-    y += 190
+    y += 200
 
     # Encouragement/criticism text
     encouragement = self._get_encouragement_text()
@@ -349,11 +343,9 @@ class ManualDriveSummaryDialog(Widget):
       rl.draw_text_ex(font_roman, line, rl.Vector2(x, y), 22, 0, LIGHT_GRAY)
       y += 28
 
-    # Tap to dismiss hint
-    hint_text = "Tap anywhere to dismiss"
-    hint_width = rl.measure_text_ex(font_roman, hint_text, 18, 0).x
-    rl.draw_text_ex(font_roman, hint_text, rl.Vector2(dialog_x + (dialog_w - hint_width) // 2, dialog_y + dialog_h - 30),
-                    18, 0, GRAY)
+    rl.end_scissor_mode()
+
+    return -1  # Keep showing dialog
 
   def _draw_score_bar(self, x: int, y: int, w: int, label: str, score: float, avg_score: float) -> int:
     """Draw a progress bar showing score vs average"""

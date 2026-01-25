@@ -12,6 +12,7 @@ from openpilot.system.ui.lib.application import gui_app, FontWeight, FONT_SCALE
 from openpilot.system.ui.lib.scroll_panel2 import GuiScrollPanel2
 from openpilot.system.ui.lib.wrap_text import wrap_text
 from openpilot.system.ui.widgets import Widget, NavWidget
+from openpilot.selfdrive.ui.mici.layouts.manual_drive_summary import ManualDriveSummaryDialog
 
 
 # Colors
@@ -67,6 +68,16 @@ class ManualStatsLayout(NavWidget):
     rl.draw_text_ex(font_bold, "Manual Driving Stats", rl.Vector2(x, y), 48, 0, WHITE)
     y += 60
 
+    # View Last Drive button
+    btn_w, btn_h = 340, 65
+    btn_rect = rl.Rectangle(x, y, btn_w, btn_h)
+    btn_color = rl.Color(60, 60, 60, 255) if not rl.check_collision_point_rec(rl.get_mouse_position(), btn_rect) else rl.Color(80, 80, 80, 255)
+    rl.draw_rectangle_rounded(btn_rect, 0.3, 10, btn_color)
+    rl.draw_text_ex(font_medium, "View Last Drive Summary", rl.Vector2(x + 20, y + 18), 26, 0, WHITE)
+    if rl.is_mouse_button_released(rl.MouseButton.MOUSE_BUTTON_LEFT) and rl.check_collision_point_rec(rl.get_mouse_position(), btn_rect):
+      gui_app.set_modal_overlay(ManualDriveSummaryDialog())
+    y += btn_h + 25
+
     if not self._stats or self._stats.get('total_drives', 0) == 0:
       rl.draw_text_ex(font_roman, "No driving data yet. Get out there and practice!",
                       rl.Vector2(x, y), 28, 0, GRAY)
@@ -86,8 +97,8 @@ class ManualStatsLayout(NavWidget):
     # Shift quality card
     total_up = self._stats.get('total_upshifts', 0)
     total_down = self._stats.get('total_downshifts', 0)
-    up_good = self._stats.get('total_upshifts_good', 0)
-    down_good = self._stats.get('total_downshifts_good', 0)
+    up_good = self._stats.get('upshifts_good', 0)
+    down_good = self._stats.get('downshifts_good', 0)
 
     up_pct = f"{int(up_good / total_up * 100)}%" if total_up > 0 else "N/A"
     down_pct = f"{int(down_good / total_down * 100)}%" if total_down > 0 else "N/A"
@@ -102,8 +113,8 @@ class ManualStatsLayout(NavWidget):
 
     # Launch quality card
     total_launches = self._stats.get('total_launches', 0)
-    good_launches = self._stats.get('total_launches_good', 0)
-    stalled_launches = self._stats.get('total_launches_stalled', 0)
+    good_launches = self._stats.get('launches_good', 0)
+    stalled_launches = self._stats.get('launches_stalled', 0)
 
     launch_pct = f"{int(good_launches / total_launches * 100)}%" if total_launches > 0 else "N/A"
 
@@ -169,13 +180,13 @@ class ManualStatsLayout(NavWidget):
 
     # Calculate height - check for items that need wrapping
     extra_lines = 0
-    max_value_width = w - 140  # Leave space for label
+    max_value_width = w - 220  # Leave space for label, trigger wrap earlier
     for _, value, _ in items:
-      value_width = rl.measure_text_ex(font_medium, value, 26, 0).x
+      value_width = rl.measure_text_ex(font_medium, value, 24, 0).x
       if value_width > max_value_width:
         extra_lines += 1
 
-    card_h = 50 + len(items) * 38 + extra_lines * 30
+    card_h = 50 + len(items) * 38 + extra_lines * 32
     rl.draw_rectangle_rounded(rl.Rectangle(x, y, w, card_h), 0.02, 10, BG_CARD)
 
     # Title
@@ -184,18 +195,23 @@ class ManualStatsLayout(NavWidget):
 
     # Items
     for label, value, color in items:
-      rl.draw_text_ex(font_medium, label, rl.Vector2(x + 15, y), 26, 0, LIGHT_GRAY)
-      value_width = rl.measure_text_ex(font_medium, value, 26, 0).x
+      value_width = rl.measure_text_ex(font_medium, value, 24, 0).x
 
-      # Check if value needs to wrap to next line
+      # Check if value needs to wrap to next line (below label)
       if value_width > max_value_width:
-        # Draw value on next line, left-aligned with indent
-        y += 30
-        rl.draw_text_ex(font_medium, value, rl.Vector2(x + 25, y), 24, 0, color)
-        y += 38
+        # Draw label
+        rl.draw_text_ex(font_medium, label, rl.Vector2(x + 15, y), 26, 0, LIGHT_GRAY)
+        y += 32
+        # Draw value on next line, wrapped if needed
+        wrapped = wrap_text(font_medium, value, 22, w - 40)
+        for line in wrapped:
+          rl.draw_text_ex(font_medium, line, rl.Vector2(x + 25, y), 22, 0, color)
+          y += 26
+        y += 6
       else:
-        # Draw value right-aligned on same line
-        rl.draw_text_ex(font_medium, value, rl.Vector2(x + w - 15 - value_width, y), 26, 0, color)
+        # Draw label and value on same line
+        rl.draw_text_ex(font_medium, label, rl.Vector2(x + 15, y), 26, 0, LIGHT_GRAY)
+        rl.draw_text_ex(font_medium, value, rl.Vector2(x + w - 15 - value_width, y), 24, 0, color)
         y += 38
 
     return y
@@ -465,12 +481,13 @@ class ManualStatsLayout(NavWidget):
   def _measure_content_height(self, rect: rl.Rectangle) -> int:
     """Measure total content height for scrolling"""
     y = 20 + 60  # Title
+    y += 90  # View Last Drive button (65 + 25)
 
     if not self._stats or self._stats.get('total_drives', 0) == 0:
       return y + 40
 
-    # Overview card (now has 5 items with hand rating, +30 for potential wrap)
-    y += 50 + 5 * 38 + 30 + 15
+    # Overview card (now has 5 items with hand rating, +60 for potential wrapped lines)
+    y += 50 + 5 * 38 + 60 + 15
     # Shift card
     y += 50 + 4 * 38 + 15
     # Launch card
@@ -555,8 +572,7 @@ class ManualStatsLayout(NavWidget):
 
     total_stalls = self._stats.get('total_stalls', 0)
     total_shifts = self._stats.get('total_upshifts', 0) + self._stats.get('total_downshifts', 0)
-    good_shifts = self._stats.get('upshifts_good', self._stats.get('total_upshifts_good', 0)) + \
-                  self._stats.get('downshifts_good', self._stats.get('total_downshifts_good', 0))
+    good_shifts = self._stats.get('upshifts_good', 0) + self._stats.get('downshifts_good', 0)
 
     stall_rate = total_stalls / total_drives
     shift_pct = (good_shifts / total_shifts * 100) if total_shifts > 0 else 100
