@@ -8,6 +8,7 @@ import json
 import pyray as rl
 
 from openpilot.common.params import Params
+from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.widgets import Widget
 
@@ -45,8 +46,8 @@ class ManualStatsWidget(Widget):
       self._update_counter = 0
       self._load_stats()
 
-    if not self._stats:
-      return
+    # Get live data from CarState (always available, doesn't need param)
+    cs = ui_state.sm['carState'] if ui_state.sm.valid['carState'] else None
 
     # Widget dimensions
     w = 140
@@ -62,14 +63,13 @@ class ManualStatsWidget(Widget):
     px = x + 10
     py = y + 8
 
-    # Current gear (big)
-    gear = self._stats.get('gear', 0)
+    # Current gear from CarState (big) - always show this
+    gear = cs.gearActual if cs else 0
     gear_text = str(gear) if gear > 0 else "N"
     rl.draw_text_ex(font_bold, gear_text, rl.Vector2(px, py), 42, 0, WHITE)
 
-    # Shift suggestion next to gear
+    # Shift suggestion next to gear (from param stats)
     suggestion = self._stats.get('shift_suggestion', 'ok')
-    reason = self._stats.get('shift_reason', '')
     if suggestion == 'upshift':
       rl.draw_text_ex(font_bold, "↑", rl.Vector2(px + 35, py + 5), 36, 0, GREEN)
     elif suggestion == 'downshift':
@@ -87,8 +87,8 @@ class ManualStatsWidget(Widget):
     rl.draw_text_ex(font, f"Stalls: {stalls}", rl.Vector2(px, py), font_size, 0, color)
     py += line_h
 
-    # Lugging indicator
-    is_lugging = self._stats.get('is_lugging', False)
+    # Lugging indicator - use CarState.isLugging for real-time, param for count
+    is_lugging = cs.isLugging if cs else False
     lugs = self._stats.get('lugs', 0)
     if is_lugging:
       rl.draw_text_ex(font, "LUGGING!", rl.Vector2(px, py), font_size, 0, RED)
@@ -110,10 +110,6 @@ class ManualStatsWidget(Widget):
   def _load_stats(self):
     """Load current session stats"""
     try:
-      data = self._params.get("ManualDriveLiveStats")
-      if data:
-        self._stats = json.loads(data)
-      else:
-        self._stats = {}
+      self._stats = self._params.get("ManualDriveLiveStats")
     except Exception:
       self._stats = {}
