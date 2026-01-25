@@ -11,6 +11,7 @@ from openpilot.selfdrive.ui.mici.onroad.hud_renderer import HudRenderer
 from openpilot.selfdrive.ui.mici.onroad.model_renderer import ModelRenderer
 from openpilot.selfdrive.ui.mici.onroad.confidence_ball import ConfidenceBall
 from openpilot.selfdrive.ui.mici.onroad.cameraview import CameraView
+from openpilot.selfdrive.ui.mici.onroad.manual_stats_widget import ManualStatsWidget
 from openpilot.system.ui.lib.application import FontWeight, gui_app, MousePos, MouseEvent
 from openpilot.system.ui.widgets.label import UnifiedLabel
 from openpilot.system.ui.widgets import Widget
@@ -161,6 +162,9 @@ class AugmentedRoadView(CameraView):
 
     self._fade_texture = gui_app.texture("icons_mici/onroad/onroad_fade.png")
 
+    # Manual stats widget for MT cars
+    self._manual_stats_widget = ManualStatsWidget()
+
     # debug
     self._pm = messaging.PubMaster(['uiDebug'])
 
@@ -241,6 +245,11 @@ class AugmentedRoadView(CameraView):
     # Custom UI extension point - add custom overlays here
     # Use self._content_rect for positioning within camera bounds
     self._confidence_ball.render(self.rect)
+
+    # Manual stats widget for MT cars - check if manual transmission (flag 128)
+    is_manual = ui_state.CP is not None and bool(ui_state.CP.flags & 128)
+    self._manual_stats_widget.set_visible(is_manual and ui_state.started)
+    self._manual_stats_widget.render(self._content_rect)
 
     self._bookmark_icon.render(self.rect)
 

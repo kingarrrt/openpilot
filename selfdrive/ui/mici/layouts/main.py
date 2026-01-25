@@ -1,9 +1,12 @@
+import json
 import pyray as rl
 from enum import IntEnum
 import cereal.messaging as messaging
+from openpilot.common.params import Params
 from openpilot.selfdrive.ui.mici.layouts.home import MiciHomeLayout
 from openpilot.selfdrive.ui.mici.layouts.settings.settings import SettingsLayout
 from openpilot.selfdrive.ui.mici.layouts.offroad_alerts import MiciOffroadAlerts
+from openpilot.selfdrive.ui.mici.layouts.manual_drive_summary import ManualDriveSummaryDialog
 from openpilot.selfdrive.ui.mici.onroad.augmented_road_view import AugmentedRoadView
 from openpilot.selfdrive.ui.ui_state import device, ui_state
 from openpilot.selfdrive.ui.mici.layouts.onboarding import OnboardingWindow
@@ -25,12 +28,16 @@ class MiciMainLayout(Widget):
     super().__init__()
 
     self._pm = messaging.PubMaster(['bookmarkButton'])
+    self._params = Params()
 
     self._current_mode: MainState | None = None
     self._prev_onroad = False
     self._prev_standstill = False
     self._onroad_time_delay: float | None = None
     self._setup = False
+
+    # Manual drive summary dialog
+    self._drive_summary_dialog: ManualDriveSummaryDialog | None = None
 
     # Initialize widgets
     self._home_layout = MiciHomeLayout()
@@ -111,6 +118,8 @@ class MiciMainLayout(Widget):
       if ui_state.started:
         self._onroad_time_delay = rl.get_time()
       else:
+        # Going offroad - show drive summary if manual car had data
+        self._show_drive_summary_if_available()
         self._set_mode_for_started(True)
 
     # delay so we show home for a bit after starting
@@ -123,6 +132,32 @@ class MiciMainLayout(Widget):
       self._set_mode(MainState.MAIN)
       self._scroll_to(self._onroad_layout)
     self._prev_standstill = CS.standstill
+
+  def _show_drive_summary_if_available(self):
+    """End manual stats session and show summary dialog if data exists"""
+    # Try to end the manual stats session
+    try:
+      from opendbc.car.subaru.manual_stats import get_tracker
+      tracker = get_tracker()
+      tracker.end_session()
+    except Exception:
+      pass
+
+    # Show the summary dialog if there's session data
+    try:
+      data = self._params.get("ManualDriveLastSession")
+      if data:
+        session = json.loads(data)
+        # Only show if there's meaningful data (duration > 30s and some activity)
+        duration = session.get('duration', 0)
+        has_activity = (session.get('stall_count', 0) > 0 or
+                       session.get('upshift_count', 0) > 0 or
+                       session.get('launch_count', 0) > 0)
+        if duration > 30 and has_activity:
+          self._drive_summary_dialog = ManualDriveSummaryDialog()
+          gui_app.set_modal_overlay(self._drive_summary_dialog)
+    except Exception:
+      pass
 
   def _set_mode_for_started(self, onroad_transition: bool = False):
     if ui_state.started:
