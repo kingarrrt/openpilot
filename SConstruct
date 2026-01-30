@@ -39,6 +39,10 @@ assert arch in [
   "Darwin",   # macOS arm64 (x86 not supported)
 ]
 
+# FIXME: setting in global environment for ./opendbc/dbc/SConscript which should be
+# fixed to import `env`
+os.environ["PYTHONPATH"] = Dir("#").abspath + ":" + os.environ['PYTHONPATH']
+
 env = Environment(
   ENV={
     "PATH": os.environ['PATH'],
