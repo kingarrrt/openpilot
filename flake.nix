@@ -110,6 +110,7 @@
               packages =
                 (with pkgs; [
                   cachix
+                  ty
                 ])
                 ++ (lib.flatten (
                   lib.mapAttrsToList (_name: drvs: drvs) (

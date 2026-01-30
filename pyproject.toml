@@ -22,18 +22,13 @@ dependencies = [
 
   # core
   "cffi",
-  "scons",
-  "pycapnp==2.1.0",
-  "Cython",
-  "setuptools",
+  "pycapnp",
   "numpy >=2.0",
 
   # body / webrtcd
   "aiohttp",
   "aiortc",
-  # aiortc does not put an upper bound on pyopenssl and is now incompatible
-  # with the latest release
-  "pyopenssl < 24.3.0",
+  "pyopenssl",
   "pyaudio",
 
   # ubloxd (TODO: just use struct)
@@ -57,8 +52,7 @@ dependencies = [
   "websocket_client",
 
   # acados deps
-  "casadi >=3.6.6",  # 3.12 fixed in 3.6.6
-  "future-fstrings",
+  "acados-template",
 
   # joystickd
   "inputs",
@@ -87,7 +81,7 @@ docs = [
 testing = [
   "coverage",
   "hypothesis ==6.47.*",
-  "ty",
+  "parameterized >=0.8, <0.9",
   "pytest",
   "pytest-cpp",
   "pytest-subtests",
@@ -98,9 +92,9 @@ testing = [
   "pytest-asyncio",
   "pytest-mock",
   "pytest-repeat",
-  "ruff",
   "codespell",
   "pre-commit-hooks",
+  "tabulate",
 ]
 
 dev = [
@@ -111,13 +105,12 @@ dev = [
   "jeepney",
   "matplotlib",
   "opencv-python-headless",
-  "parameterized >=0.8, <0.9",
   "pyautogui",
   "pyopencl",
   "pytools>=2025.1.6; platform_machine != 'aarch64'",
   "pywinctl",
   "pyprof2calltree",
-  "tabulate",
+  "ruff",
   "types-requests",
   "types-tabulate",
 ]
