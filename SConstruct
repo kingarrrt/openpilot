@@ -168,7 +168,10 @@ Export('envCython', 'np_version')
 Export('env', 'arch')
 
 # Setup cache dir
-cache_dir = '/data/scons_cache' if arch == "larch64" else '/tmp/scons_cache'
+cache_dir = os.getenv(
+  "SCONS_CACHE",
+  '/data/scons_cache' if arch == "larch64" else '/tmp/scons-cache'
+)
 CacheDir(cache_dir)
 Clean(["."], cache_dir)
 
