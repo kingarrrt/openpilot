@@ -71,6 +71,7 @@ selfdrive/modeld/models/*.pkl
 *.zst
 
 build/
+/result
 
 !**/.gitkeep
 
