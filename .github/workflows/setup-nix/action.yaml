@@ -1,0 +1,37 @@
+name: setup-nix
+description: nix setup
+
+runs:
+  using: composite
+  steps:
+    - uses: nixbuild/nix-quick-install-action@v34
+      with:
+        # https://github.com/nixbuild/nix-quick-install-action/blob/master/action.yml
+        nix_version: 2.31.2
+        nix_conf: |
+          accept-flake-config = true
+          cores = 4
+          keep-derivations = false
+          log-lines = 0
+        nix_on_tmpfs: true
+    # TODO: merge similar caches
+    # https://github.com/nix-community/cache-nix-action/blob/main/.github/workflows/ci.yaml
+    - uses: nix-community/cache-nix-action@v6
+      with:
+        # https://github.com/nix-community/cache-nix-action?tab=readme-ov-file#inputs
+        gc-max-store-size: 0
+        primary-key: |
+          nix-${{runner.os}}-${{ runner.arch }}-${{
+            hashFiles('**/*.nix', 'flake.lock', 'pyproject.toml', '.github/workflows/**/*.yaml')
+          }}
+        purge: true
+        purge-prefixes: nix-${{runner.os}}-${{ runner.arch }}
+        purge-last-accessed: P1D
+        restore-prefixes-first-match: nix-${{runner.os}}-${{ runner.arch }}
+    - uses: cachix/cachix-action@v16
+      with:
+        # https://github.com/cachix/cachix-action#cache-configuration
+        name: ${{ github.event.repository.name }}
+        authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+    - shell: bash
+      run: cat ~/.config/nix/nix.conf

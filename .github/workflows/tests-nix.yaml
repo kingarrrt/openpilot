@@ -1,0 +1,67 @@
+name: tests (nix)
+
+on:
+  push:
+  pull_request:
+
+env:
+  AZURE_TOKEN: ${{ secrets.AZURE_COMMADATACI_OPENPILOTCI_TOKEN }}
+
+jobs:
+  lint:
+    name: Static Analysis
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Nix Setup
+        uses: ./.github/workflows/setup-nix
+      - name: Build
+        shell: bash
+        run: |
+          nix build --print-build-logs .#devShells.$(
+            nix eval --impure --expr builtins.currentSystem
+          ).default
+      - name: Lint
+        shell: bash
+        run: nix develop --command scripts/lint/lint.sh
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+          # - macos-15
+          # - macos-15-intel
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+          # TODO: this doesn't work on forks, it can likely be uncommented and the
+          # below step removed after this is merged
+          # lfs: true
+      - name: Git LFS Pull
+        shell: bash
+        run: git lfs pull
+      - name: Nix Setup
+        uses: ./.github/workflows/setup-nix
+      - shell: bash
+        run: |
+          echo CACHE_COMMIT_DATE=$(
+            git log -1 --pretty=format:%cd --date=format:%Y-%m-%d
+          ) >> $GITHUB_ENV
+      - uses: ./.github/workflows/auto-cache
+        with:
+          path: /tmp/scons_cache
+          key: scons-${runner-os}}-${{ runner.arch }}-${{ env.CACHE_COMMIT_DATE }}-${{ github.sha }}
+          restore-keys: |-
+            scons-${runner.os}}-${{ runner.arch }}-${{ env.CACHE_COMMIT_DATE }}
+            scons-${runner.os}}-${{ runner.arch }}
+      - name: Build
+        shell: bash
+        run: nix build --print-build-logs
+      - name: Test
+        shell: bash
+        run: nix build --option sandbox false --print-build-logs .#test
