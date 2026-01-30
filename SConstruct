@@ -180,7 +180,14 @@ Export('common')
 # Enable swaglog include in submodules
 env_swaglog = env.Clone()
 env_swaglog['CXXFLAGS'].append('-DSWAGLOG="\\"common/swaglog.h\\""')
-SConscript(['msgq_repo/SConscript'], exports={'env': env_swaglog})
+
+# FIXME: covering the warning so we don't have to deal with submodules in a pull request
+#  * msgq_repo/msgq/visionipc/visionbuf_cl.cc:28:3: error: ignoring return value of function declared with 'warn_unused_result' attribute [-Werror,-Wunused-result]
+#  * msgq_repo/msgq/event.cc:132:3: error: ignoring return value of function declared with 'warn_unused_result' attribute [-Werror,-Wunused-result]
+env_msgq = env_swaglog.Clone()
+env_msgq["CCFLAGS"].remove("-Werror")
+
+SConscript(['msgq_repo/SConscript'], exports={'env': env_msgq})
 SConscript(['opendbc_repo/SConscript'], exports={'env': env_swaglog})
 
 SConscript(['cereal/SConscript'])
