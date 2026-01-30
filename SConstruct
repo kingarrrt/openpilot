@@ -44,13 +44,7 @@ assert arch in [
 os.environ["PYTHONPATH"] = Dir("#").abspath + ":" + os.environ['PYTHONPATH']
 
 env = Environment(
-  ENV={
-    "PATH": os.environ['PATH'],
-    "PYTHONPATH": Dir("#").abspath + ':' + Dir(f"#third_party/acados").abspath,
-    "ACADOS_SOURCE_DIR": Dir("#third_party/acados").abspath,
-    "ACADOS_PYTHON_INTERFACE_PATH": Dir("#third_party/acados/acados_template").abspath,
-    "TERA_PATH": Dir("#").abspath + f"/third_party/acados/{arch}/t_renderer"
-  },
+  ENV=os.environ,
   CC='clang',
   CXX='clang++',
   CCFLAGS=[
@@ -74,11 +68,7 @@ env = Environment(
     "#third_party",
     "#third_party/json11",
     "#third_party/linux/include",
-    "#third_party/acados/include",
-    "#third_party/acados/include/blasfeo/include",
-    "#third_party/acados/include/hpipm/include",
-    "#third_party/catch2/include",
-    "#third_party/libyuv/include",
+    *os.environ.get("CPPPATH", "").split(":"),
   ],
   LIBPATH=[
     "#common",
@@ -86,8 +76,7 @@ env = Environment(
     "#third_party",
     "#selfdrive/pandad",
     "#rednose/helpers",
-    f"#third_party/libyuv/{arch}/lib",
-    f"#third_party/acados/{arch}/lib",
+    *os.environ.get("LIBPATH", "").split(":"),
   ],
   RPATH=[],
   CYTHONCFILESUFFIX=".cpp",
@@ -99,7 +88,6 @@ env = Environment(
 
 # Arch-specific flags and paths
 if arch == "larch64":
-  env.Append(CPPPATH=["#third_party/opencl/include"])
   env.Append(LIBPATH=[
     "/usr/local/lib",
     "/system/vendor/lib64",
