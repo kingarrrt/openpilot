@@ -51,6 +51,7 @@ env = Environment(
     "-g",
     "-fPIC",
     "-O2",
+    "-DCL_TARGET_OPENCL_VERSION=300",
     "-Wunused",
     "-Werror",
     "-Wshadow",
