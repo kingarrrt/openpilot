@@ -1,0 +1,69 @@
+diff --git i/SConstruct w/SConstruct
+index 094503cfa..3240499d5 100644
+--- i/SConstruct
++++ w/SConstruct
+@@ -39,14 +39,11 @@ assert arch in [
+   "Darwin",   # macOS arm64 (x86 not supported)
+ ]
+ 
++# setting in global environment for ./opendbc/dbc/SConscript
++os.environ["PYTHONPATH"] = Dir("#").abspath + ":" + os.environ['PYTHONPATH']
++
+ env = Environment(
+-  ENV={
+-    "PATH": os.environ['PATH'],
+-    "PYTHONPATH": Dir("#").abspath + ':' + Dir(f"#third_party/acados").abspath,
+-    "ACADOS_SOURCE_DIR": Dir("#third_party/acados").abspath,
+-    "ACADOS_PYTHON_INTERFACE_PATH": Dir("#third_party/acados/acados_template").abspath,
+-    "TERA_PATH": Dir("#").abspath + f"/third_party/acados/{arch}/t_renderer"
+-  },
++  ENV=os.environ,
+   CC='clang',
+   CXX='clang++',
+   CCFLAGS=[
+@@ -75,6 +72,7 @@ env = Environment(
+     "#third_party/acados/include/hpipm/include",
+     "#third_party/catch2/include",
+     "#third_party/libyuv/include",
++    *os.environ.get("CPPPATH", "").split(":"),
+   ],
+   LIBPATH=[
+     "#common",
+@@ -84,6 +82,7 @@ env = Environment(
+     "#rednose/helpers",
+     f"#third_party/libyuv/{arch}/lib",
+     f"#third_party/acados/{arch}/lib",
++    *os.environ.get("LIBPATH", "").split(":"),
+   ],
+   RPATH=[],
+   CYTHONCFILESUFFIX=".cpp",
+@@ -169,6 +168,11 @@ Export('env', 'arch')
+ 
+ # Setup cache dir
+ cache_dir = '/data/scons_cache' if arch == "larch64" else '/tmp/scons_cache'
++cache_dir = os.getenv(
++  "SCONS_CACHE",
++  '/data/scons_cache' if arch == "larch64" else '/tmp/scons-cache'
++)
++print(f"scons: cache dir {cache_dir}")
+ CacheDir(cache_dir)
+ Clean(["."], cache_dir)
+ 
+diff --git i/selfdrive/modeld/SConscript w/selfdrive/modeld/SConscript
+index 91f359744..ff46e5e07 100644
+--- i/selfdrive/modeld/SConscript
++++ w/selfdrive/modeld/SConscript
+@@ -39,12 +39,11 @@ for model_name in ['driving_vision', 'driving_policy', 'dmonitoring_model']:
+   lenv.Command(fn + "_metadata.pkl", [fn + ".onnx"] + tinygrad_files + script_files, cmd)
+ 
+ def tg_compile(flags, model_name):
+-  pythonpath_string = 'PYTHONPATH="${PYTHONPATH}:' + env.Dir("#tinygrad_repo").abspath + '"'
+   fn = File(f"models/{model_name}").abspath
+   return lenv.Command(
+     fn + "_tinygrad.pkl",
+     [fn + ".onnx"] + tinygrad_files,
+-    f'{pythonpath_string} {flags} python3 {Dir("#tinygrad_repo").abspath}/examples/openpilot/compile3.py {fn}.onnx {fn}_tinygrad.pkl'
++    f'{flags} python3 {Dir("#tinygrad_repo").abspath}/examples/openpilot/compile3.py {fn}.onnx {fn}_tinygrad.pkl'
+   )
+ 
+ # Compile small models

@@ -1,0 +1,147 @@
+name: Nix Build
+
+on:
+  push:
+    branches:
+      - master
+      # TOGO: for dev
+      - nixify*
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      run_number:
+        default: '1'
+        required: true
+        type: string
+
+# TOGO: for dev
+# concurrency:
+#   group: tests-ci-run-${{ inputs.run_number }}-${{ github.event_name == 'push' && github.ref == 'refs/heads/master'
+#     && github.run_id || github.head_ref || github.ref }}-${{ github.workflow }}-${{ github.event_name
+#     }}
+#   cancel-in-progress: true
+
+env:
+  AZURE_TOKEN: ${{ secrets.AZURE_COMMADATACI_OPENPILOTCI_TOKEN }}
+  PACKAGE: default
+  NIX: nix --print-build-logs --show-trace
+  # can't reference $NIX or ${{ env.nix }}, so below must be prefixed with above
+  NIX_DEVELOP_COMMAND: nix --print-build-logs --show-trace develop path:. --command
+  PYTEST: pytest --continue-on-collection-errors --durations=0 -n logical
+  PYTHONWARNINGS: error
+  # SHELLOPTS: xtrace
+
+# XXX: github support yaml anchors, but do NOT support merge keys (<<:) so we have to
+# break DRY - all jobs (apart from static_analysis which doesn't need submodules and
+# uses a separate build cache) MUST match build_release
+
+# TODO: All jobs from ./tests.yaml
+jobs:
+
+  check:
+    name: Check
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - shell: bash
+        run: $NIX flake check -v path:.
+
+  shell:
+    name: Shell
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: &os
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+          - macos-15
+          - macos-15-intel
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - uses: ./.github/workflows/nix-build
+        with:
+          package: devShells.SYSTEM.default
+
+  build:
+    name: Build
+    needs:
+      - build_impure
+    strategy:
+      fail-fast: false
+      matrix:
+        os: *os
+    runs-on: ${{ matrix.os }}
+    steps:
+
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+          submodules: true
+
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - uses: ./.github/workflows/nix-build
+
+      - name: Check Reproducible
+        uses: ./.github/workflows/nix-build
+        with:
+          flags: --rebuild
+
+  build_impure:
+    name: Build (Impure)
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: *os
+    runs-on: ${{ matrix.os }}
+    env:
+      SCONS_CACHE: /var/tmp/scons
+      SCONS_SYSTEM: scons-$SYSTEM
+    steps:
+
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+          submodules: true
+
+      # scons cache
+
+      - shell: bash
+        run: |
+          sudo mkdir -p $SCONS_CACHE
+          sudo chown $USER $SCONS_CACHE
+
+      - shell: bash
+        run: |
+          echo SCONS_SYSTEM_DATE=${{env.SCONS_SYSTEM }}-$(
+            git log -1 --pretty=format:%cd --date=format:%Y-%m-%d
+          ) >> $GITHUB_ENV
+
+      - uses: ./.github/workflows/auto-cache
+        with:
+          path: ${{ env.SCONS_CACHE }}
+          key: ${{ env.SCONS_SYSTEM_DATE }}-${{ github.sha }}
+          restore-keys: |
+            ${{ env.SCONS_SYSTEM_DATE }}
+            ${{ env.SCONS_SYSTEM }}
+
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nix_config: extra-sandbox-paths = ${{ env.SCONS_CACHE }}
+      - uses: ./.github/workflows/nix-build
+        with:
+          package: ${{ env.PACKAGE }}.passthru.test
+          flags: --impure

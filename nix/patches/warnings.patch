@@ -1,0 +1,123 @@
+diff --git a/SConstruct b/SConstruct
+index d601a2442..6aaa3f9fe 100644
+--- a/SConstruct
++++ b/SConstruct
+@@ -51,6 +51,8 @@ env = Environment(
+     "-g",
+     "-fPIC",
+     "-O2",
++    # XXX: this is a guess
++    "-DCL_TARGET_OPENCL_VERSION=120",
+     "-Wunused",
+     "-Werror",
+     "-Wshadow",
+@@ -189,7 +191,14 @@ Export('common')
+ # Enable swaglog include in submodules
+ env_swaglog = env.Clone()
+ env_swaglog['CXXFLAGS'].append('-DSWAGLOG="\\"common/swaglog.h\\""')
+-SConscript(['msgq_repo/SConscript'], exports={'env': env_swaglog})
++
++# FIXME: covering the warning so we don't have to deal with submodules in a pull request
++#  * msgq_repo/msgq/visionipc/visionbuf_cl.cc:28:3: error: ignoring return value of function declared with 'warn_unused_result' attribute [-Werror,-Wunused-result]
++#  * msgq_repo/msgq/event.cc:132:3: error: ignoring return value of function declared with 'warn_unused_result' attribute [-Werror,-Wunused-result]
++env_msgq = env_swaglog.Clone()
++env_msgq["CCFLAGS"].remove("-Werror")
++
++SConscript(['msgq_repo/SConscript'], exports={'env': env_msgq})
+ SConscript(['opendbc_repo/SConscript'], exports={'env': env_swaglog})
+
+ SConscript(['cereal/SConscript'])
+diff --git a/common/prefix.h b/common/prefix.h
+index 30ee18f63..52c54c294 100644
+--- a/common/prefix.h
++++ b/common/prefix.h
+@@ -27,14 +27,14 @@ public:
+     auto param_path = Params().getParamPath();
+     if (util::file_exists(param_path)) {
+       std::string real_path = util::readlink(param_path);
+-      system(util::string_format("rm %s -rf", real_path.c_str()).c_str());
++      (void)system(util::string_format("rm %s -rf", real_path.c_str()).c_str());
+       unlink(param_path.c_str());
+     }
+     if (getenv("COMMA_CACHE") == nullptr) {
+-      system(util::string_format("rm %s -rf", Path::download_cache_root().c_str()).c_str());
++      (void)system(util::string_format("rm %s -rf", Path::download_cache_root().c_str()).c_str());
+     }
+-    system(util::string_format("rm %s -rf", Path::comma_home().c_str()).c_str());
+-    system(util::string_format("rm %s -rf", msgq_path.c_str()).c_str());
++    (void)system(util::string_format("rm %s -rf", Path::comma_home().c_str()).c_str());
++    (void)system(util::string_format("rm %s -rf", msgq_path.c_str()).c_str());
+     unsetenv("OPENPILOT_PREFIX");
+   }
+
+diff --git a/common/tests/test_util.cc b/common/tests/test_util.cc
+index de87fa3e0..0392f7dd4 100644
+--- a/common/tests/test_util.cc
++++ b/common/tests/test_util.cc
+@@ -36,7 +36,7 @@ TEST_CASE("util::read_file") {
+     REQUIRE(util::read_file(filename).empty());
+
+     std::string content = random_bytes(64 * 1024);
+-    write(fd, content.c_str(), content.size());
++    (void)write(fd, content.c_str(), content.size());
+     std::string ret = util::read_file(filename);
+     bool equal = (ret == content);
+     REQUIRE(equal);
+@@ -114,7 +114,7 @@ TEST_CASE("util::safe_fwrite") {
+ }
+
+ TEST_CASE("util::create_directories") {
+-  system("rm /tmp/test_create_directories -rf");
++  (void)system("rm /tmp/test_create_directories -rf");
+   std::string dir = "/tmp/test_create_directories/a/b/c/d/e/f";
+
+   auto check_dir_permissions = [](const std::string &dir, mode_t mode) -> bool {
+@@ -132,7 +132,7 @@ TEST_CASE("util::create_directories") {
+   }
+   SECTION("a file exists with the same name") {
+     REQUIRE(util::create_directories(dir, 0755));
+-    int f = open((dir + "/file").c_str(), O_RDWR | O_CREAT);
++    int f = open((dir + "/file").c_str(), O_RDWR | O_CREAT, 0644);
+     REQUIRE(f != -1);
+     close(f);
+     REQUIRE(util::create_directories(dir + "/file", 0755) == false);
+diff --git a/system/loggerd/tests/test_logger.cc b/system/loggerd/tests/test_logger.cc
+index 40a45a68d..8f74ddd17 100644
+--- a/system/loggerd/tests/test_logger.cc
++++ b/system/loggerd/tests/test_logger.cc
+@@ -56,7 +56,7 @@ void write_msg(LoggerState *logger) {
+ TEST_CASE("logger") {
+   const int segment_cnt = 100;
+   const std::string log_root = "/tmp/test_logger";
+-  system(("rm " + log_root + " -rf").c_str());
++  (void)system(("rm " + log_root + " -rf").c_str());
+   std::string route_name;
+   {
+     LoggerState logger(log_root);
+diff --git a/tools/cabana/utils/util.cc b/tools/cabana/utils/util.cc
+index ca069b358..493744624 100644
+--- a/tools/cabana/utils/util.cc
++++ b/tools/cabana/utils/util.cc
+@@ -161,18 +161,18 @@ UnixSignalHandler::UnixSignalHandler(QObject *parent) : QObject(nullptr) {
+ }
+
+ UnixSignalHandler::~UnixSignalHandler() {
+-  ::close(sig_fd[0]);
+-  ::close(sig_fd[1]);
++  (void)::close(sig_fd[0]);
++  (void)::close(sig_fd[1]);
+ }
+
+ void UnixSignalHandler::signalHandler(int s) {
+-  ::write(sig_fd[0], &s, sizeof(s));
++  (void)::write(sig_fd[0], &s, sizeof(s));
+ }
+
+ void UnixSignalHandler::handleSigTerm() {
+   sn->setEnabled(false);
+   int tmp;
+-  ::read(sig_fd[1], &tmp, sizeof(tmp));
++  (void)::read(sig_fd[1], &tmp, sizeof(tmp));
+
+   printf("\nexiting...\n");
+   qApp->closeAllWindows();

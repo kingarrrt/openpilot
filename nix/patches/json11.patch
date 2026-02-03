@@ -1,0 +1,18 @@
+commit dc918789af1e0acd49da8d9b6f91c501bb426e02
+Author: King Art <arthur@ischium.net>
+Date:   Fri Jan 30 21:48:36 2026 +0000
+
+    json11: add missing include
+
+diff --git a/third_party/json11/json11.cpp b/third_party/json11/json11.cpp
+index bc4045f07..4ca31bde8 100644
+--- a/third_party/json11/json11.cpp
++++ b/third_party/json11/json11.cpp
+@@ -25,6 +25,7 @@
+ #include <cstdlib>
+ #include <cstdio>
+ #include <limits>
++#include <stdint.h>
+ 
+ namespace json11 {
+ 

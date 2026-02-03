@@ -95,3 +95,15 @@ Pipfile
 # Ignore all local history of files
 .history
 .ionide
+
+# nix build result
+/result
+
+# direnv
+/.direnv
+
+# ripgrep ignore file
+/.ignore
+
+# flake-generated
+/.pre-commit-config.yaml

@@ -1,0 +1,21 @@
+name: nix-build
+description: Nix Build
+
+inputs:
+  package:
+    description: Package to build
+    default: default
+  flags:
+    description: Flags passed to `nix build`
+
+runs:
+  using: composite
+  steps:
+    - name: Build
+      shell: bash
+      run: ./.github/workflows/nix-build/build.sh ${{ inputs.package }} ${{ inputs.flags }}
+    - name: Upload Graphs
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.package }}-dependency-graph
+        path: ${{ env.MMD }}  ${{ env.SVG }}

@@ -1,0 +1,64 @@
+diff --git i/selfdrive/ui/SConscript w/selfdrive/ui/SConscript
+index 0de3e13c0..20052f71d 100644
+--- i/selfdrive/ui/SConscript
++++ w/selfdrive/ui/SConscript
+@@ -35,7 +35,6 @@ if GetOption('extras'):
+   # build installers
+   if arch != "Darwin":
+     raylib_env = env.Clone()
+-    raylib_env['LIBPATH'] += [f'#third_party/raylib/{arch}/']
+     raylib_env['LINKFLAGS'].append('-Wl,-strip-debug')
+
+     raylib_libs = common + ["raylib"]
+diff --git i/selfdrive/ui/installer/installer.cc w/selfdrive/ui/installer/installer.cc
+index 072fa4e24..855928139 100644
+--- i/selfdrive/ui/installer/installer.cc
++++ w/selfdrive/ui/installer/installer.cc
+@@ -6,7 +6,7 @@
+ #include "common/swaglog.h"
+ #include "common/util.h"
+ #include "system/hardware/hw.h"
+-#include "third_party/raylib/include/raylib.h"
++#include "raylib.h"
+
+ int freshClone();
+ int cachedFetch(const std::string &cache);
+diff --git i/system/loggerd/encoder/ffmpeg_encoder.cc w/system/loggerd/encoder/ffmpeg_encoder.cc
+index 4d6be4718..275a2e481 100644
+--- i/system/loggerd/encoder/ffmpeg_encoder.cc
++++ w/system/loggerd/encoder/ffmpeg_encoder.cc
+@@ -9,7 +9,7 @@
+
+ #define __STDC_CONSTANT_MACROS
+
+-#include "third_party/libyuv/include/libyuv.h"
++#include "libyuv.h"
+
+ extern "C" {
+ #include <libavcodec/avcodec.h>
+diff --git i/system/loggerd/encoder/v4l_encoder.cc w/system/loggerd/encoder/v4l_encoder.cc
+index 6ee3af13b..98642cc24 100644
+--- i/system/loggerd/encoder/v4l_encoder.cc
++++ w/system/loggerd/encoder/v4l_encoder.cc
+@@ -7,7 +7,7 @@
+ #include "common/util.h"
+ #include "common/timing.h"
+
+-#include "third_party/libyuv/include/libyuv.h"
++#include "libyuv.h"
+ #include "third_party/linux/include/msm_media_info.h"
+
+ // has to be in this order
+diff --git i/tools/replay/framereader.cc w/tools/replay/framereader.cc
+index 96ec5915b..45af3635e 100644
+--- i/tools/replay/framereader.cc
++++ w/tools/replay/framereader.cc
+@@ -6,7 +6,7 @@
+ #include <utility>
+
+ #include "common/util.h"
+-#include "third_party/libyuv/include/libyuv.h"
++#include "libyuv.h"
+ #include "tools/replay/util.h"
+ #include "system/hardware/hw.h"
+

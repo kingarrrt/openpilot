@@ -1,0 +1,16 @@
+name: Git LFS Pull
+description: Pull from LFS, always use commaai/openpilot
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |-
+        remote=
+        if [[ ${{ github.repository}} != commaai/openpilot ]]; then
+          remote=upstream
+          git remote add $remote https://github.com/commaai/openpilot
+        fi
+        git lfs pull $remote
+        # this is maybe very important
+        git add .
