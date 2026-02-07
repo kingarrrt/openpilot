@@ -163,7 +163,7 @@ let
   # the output's lib/pythonX.XX/site-packages directory where the package is installed
   sitePackages = "${builtins.placeholder "out"}/${python.sitePackages}";
 
-  # TODO: verify that this is complete
+  # filter source for everything extraneous to the build
   srcFilter =
     root:
     with lib.fileset;
@@ -197,12 +197,20 @@ let
               unions (
                 map (dir: ./${dir}) (
                   [
+                    ".dockerignore"
+                    ".editorconfig"
+                    ".envrc"
+                    ".gitattributes"
+                    ".github"
+                    ".vscode"
                     "Jenkinsfile"
                     "docs"
                     "mkdocs.yml"
                     "openpilot/third_party"
                     "release"
                     "scripts"
+                    # XXX: need all of tools?
+                    "uv.lock"
                   ]
                   ++ map (name: "third_party/${name}") [
                     "acados"
