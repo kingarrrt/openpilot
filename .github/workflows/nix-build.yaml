@@ -44,7 +44,7 @@ jobs:
     secrets:
       nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
     with:
-      filter_builds: .system | contains("darwin")
+      filter_builds: .system | contains("darwin") | not
       # make nix ignore git - important for lfs
       flake: path:.
       lfs: true
