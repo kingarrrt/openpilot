@@ -39,86 +39,88 @@ env:
 # TODO: All jobs from ./tests.yaml
 jobs:
 
-  build:
-    uses: nixbuild/nixbuild-action/.github/workflows/ci-workflow.yml@v24
-    secrets:
-      nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
-    with:
-      filter_builds: .system | contains("darwin") | not
-      # make nix ignore git - important for lfs
-      flake: path:.
-      lfs: true
-      nix_conf: |
-        accept-flake-config = true
-        download-buffer-size = 268435456
-        http-connections = 128
-        keep-derivations = true
-        keep-outputs = true
-        max-substitution-jobs = 64
-        ${{ inputs.nix_config }}
-      nix_on_tmpfs: true
-      nix_version: 2.31.2
-
-  # check:
-  #   name: Check
-  #   runs-on: ubuntu-22.04
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - uses: ./.github/workflows/nix-setup
-  #       with:
-  #         cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-  #         nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
-  #     - shell: bash
-  #       run: $NIX flake check -v path:.
-  #
-  # shell:
-  #   name: Shell
-  #   needs: check
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: &os
-  #         - ubuntu-22.04
-  #         - ubuntu-22.04-arm
-  #         - macos-15
-  #         - macos-15-intel
-  #   runs-on: ${{ matrix.os }}
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - uses: ./.github/workflows/nix-setup
-  #       with:
-  #         cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-  #     - uses: ./.github/workflows/nix-build
-  #       with:
-  #         package: devShells.SYSTEM.default
-  #
   # build:
-  #   name: Build
-  #   needs:
-  #     - build_impure
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: *os
-  #   runs-on: ${{ matrix.os }}
-  #   steps:
-  #
-  #     - uses: actions/checkout@v6
-  #       with:
-  #         lfs: true
-  #         submodules: true
-  #
-  #     - uses: ./.github/workflows/nix-setup
-  #       with:
-  #         cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-  #
-  #     - uses: ./.github/workflows/nix-build
-  #
-  #     - name: Check Reproducible
-  #       uses: ./.github/workflows/nix-build
-  #       with:
-  #         flags: --rebuild
-  #
+  #   uses: nixbuild/nixbuild-action/.github/workflows/ci-workflow.yml@v24
+  #   secrets:
+  #     nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
+  #   with:
+  #     filter_builds: .system | contains("darwin") | not
+  #  # make nix ignore git - important for lfs
+  #     flake: path:.
+  #     lfs: true
+  #     nix_conf: |
+  #       accept-flake-config = true
+  #       download-buffer-size = 268435456
+  #       http-connections = 128
+  #       keep-derivations = true
+  #       keep-outputs = true
+  #       max-substitution-jobs = 64
+  #       ${{ inputs.nix_config }}
+  #     nix_on_tmpfs: true
+  #     nix_version: 2.31.2
+
+  check:
+    name: Check
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
+      - shell: bash
+        run: $NIX flake check -v path:.
+
+  devshell:
+    name: Dev Shell
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: &os
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+          - macos-15
+          - macos-15-intel
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
+      - uses: ./.github/workflows/nix-build
+        with:
+          package: devShells.SYSTEM.default
+
+  package:
+    name: Package
+    # needs:
+    #   - check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: *os
+    runs-on: ${{ matrix.os }}
+    steps:
+
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+          submodules: true
+
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
+
+      - uses: ./.github/workflows/nix-build
+
+      - name: Rebuild
+        uses: ./.github/workflows/nix-build
+        with:
+          flags: --rebuild
+
   # build_impure:
   #   name: Build (Impure)
   #   needs: check
@@ -161,6 +163,7 @@ jobs:
   #     - uses: ./.github/workflows/nix-setup
   #       with:
   #         cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  #         nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
   #         nix_config: extra-sandbox-paths = ${{ env.SCONS_CACHE }}
   #     - uses: ./.github/workflows/nix-build
   #       with:

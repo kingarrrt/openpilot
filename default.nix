@@ -244,7 +244,7 @@ python.pkgs.buildPythonPackage (
     prePatch = ''
       # verify lfs checkout
       model=selfdrive/modeld/models/driving_policy.onnx
-      [[ -f $model ] || {
+      [[ -f $model ]] || {
         echo "model $model not found"
         exit 1
       fi

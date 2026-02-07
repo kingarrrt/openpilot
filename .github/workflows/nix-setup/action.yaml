@@ -41,8 +41,9 @@ runs:
     #       max-substitution-jobs = 64
     #       ${{ inputs.nix_config }}
 
-    - uses: nixbuild/nixbuild-action/.github/workflows/ci-workflow.yml@v24
+    - uses: nixbuild/nixbuild-action@v24
       with:
+        flake: path:.
         nixbuild_token: ${{ inputs.NIXBUILD_TOKEN }}
 
     - uses: cachix/cachix-action@v16
