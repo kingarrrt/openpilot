@@ -25,19 +25,18 @@ on:
 env:
   AZURE_TOKEN: ${{ secrets.AZURE_COMMADATACI_OPENPILOTCI_TOKEN }}
   PACKAGE: default
-  NIX: |
-    nix \
-      --print-build-logs \
-      --show-trace \
-      --builders "" \
-      --max-jobs 2 \
-      --eval-store auto \
-      --store ssh-ng://eu.nixbuild.net
-  # can't reference $NIX or ${{ env.nix }}, so below must be prefixed with above
+  NIX: nix --print-build-logs --show-trace
+  NIX_CONFIG: |
+    builders =
+    eval-store = auto
+    experimental-features = nix-command flakes
+    max-jobs = 2
+    store = ssh-ng://eu.nixbuild.net
+  # can't reference $NIX or ${{ env.nix }}, so below must match NIX above
   NIX_DEVELOP_COMMAND: nix --print-build-logs --show-trace develop path:. --command
   PYTEST: pytest --continue-on-collection-errors --durations=0 -n logical
   PYTHONWARNINGS: error
-  # SHELLOPTS: xtrace
+  SHELLOPTS: xtrace
 
 # XXX: github support yaml anchors, but do NOT support merge keys (<<:) so we have to
 # break DRY - all jobs (apart from static_analysis which doesn't need submodules and
@@ -66,21 +65,10 @@ jobs:
   #     nix_on_tmpfs: true
   #     nix_version: 2.31.2
 
-  check:
-    name: Check
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/workflows/nix-setup
-        with:
-          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
-      - shell: bash
-        run: $NIX flake check -v path:.
-
-  shell:
-    name: Shell
-    needs: check
+  package:
+    name: Package
+    # needs:
+    #   - check
     strategy:
       fail-fast: false
       matrix:
@@ -89,25 +77,6 @@ jobs:
           - ubuntu-22.04-arm
           # - macos-15
           # - macos-15-intel
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/workflows/nix-setup
-        with:
-          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
-      - uses: ./.github/workflows/nix-build
-        with:
-          package: devShells.SYSTEM.default
-
-  package:
-    name: Package
-    # needs:
-    #   - check
-    strategy:
-      fail-fast: false
-      matrix:
-        os: *os
     runs-on: ${{ matrix.os }}
     steps:
 
@@ -127,6 +96,41 @@ jobs:
         uses: ./.github/workflows/nix-build
         with:
           flags: --rebuild
+
+  shell:
+    name: Shell
+    strategy:
+      fail-fast: false
+      matrix:
+        os: *os
+    runs-on: ${{ matrix.os }}
+    steps:
+
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
+
+      - uses: ./.github/workflows/nix-build
+        with:
+          package: devShells.SYSTEM.default
+
+  check:
+    name: Check
+    runs-on: ubuntu-22.04
+    steps:
+
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/workflows/nix-setup
+        with:
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
+
+      - shell: bash
+        run: $NIX flake check -v path:.
 
   # build_impure:
   #   name: Build (Impure)

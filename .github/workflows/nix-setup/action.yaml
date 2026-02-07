@@ -43,7 +43,6 @@ runs:
 
     - uses: nixbuild/nixbuild-action@v24
       with:
-        flake: path:.
         nixbuild_token: ${{ inputs.NIXBUILD_TOKEN }}
 
     - uses: cachix/cachix-action@v16
@@ -75,3 +74,18 @@ runs:
         SYSTEM=$SYSTEM
         SYSTEM_JOB=$SYSTEM-${{ github.job }}
         EOF
+
+        # trust nixbuild.net
+        mkdir -p ~/.ssh
+        ssh-keyscan eu.nixbuild.net >> ~/.ssh/known_hosts
+
+        # lfs pull
+        # remote=
+        # if [[ ${{ github.repository}} != commaai/openpilot ]]; then
+        #   remote=upstream
+        #   git remote add $remote https://github.com/commaai/openpilot
+        # fi
+        # git lfs pull $remote
+        #
+        #  # XXX: needed?
+        # git add .

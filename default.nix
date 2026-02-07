@@ -247,7 +247,7 @@ python.pkgs.buildPythonPackage (
       [[ -f $model ]] || {
         echo "model $model not found"
         exit 1
-      fi
+      }
       if head -1 $model | grep -q git-lfs; then
         echo "model $model is an lfs pointer"
         exit 1
