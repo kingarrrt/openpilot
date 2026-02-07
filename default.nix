@@ -244,12 +244,12 @@ python.pkgs.buildPythonPackage (
     prePatch = ''
       # verify lfs checkout
       model=selfdrive/modeld/models/driving_policy.onnx
-      if [[ ! -f $model ]]; then
-        echo "lfs bad checkout: model $model not found"
+      [[ -f $model ] || {
+        echo "model $model not found"
         exit 1
       fi
       if head -1 $model | grep -q git-lfs; then
-        echo "lfs bad checkout: model $model is an lfs pointer"
+        echo "model $model is an lfs pointer"
         exit 1
       fi
 
