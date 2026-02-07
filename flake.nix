@@ -87,7 +87,6 @@
 
         # `nix build` for default package, otherwise `nix build .#<name>`
         packages = {
-          inherit openpilot;
           default = openpilot;
         }
         // lib.optionalAttrs (builtins.getEnv "IN_NIX_SHELL" != "") {
