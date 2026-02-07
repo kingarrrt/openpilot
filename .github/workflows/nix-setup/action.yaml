@@ -3,7 +3,10 @@ description: Nix Setup
 
 inputs:
   cachix_token:
-    description: The Cachix Auth Token
+    description: Cachix auth token
+    required: true
+  nixbuild_token:
+    description: nixbuild.net auth token
     required: true
   nix_config:
     description: Appended to /etc/nix/nix.conf
@@ -14,20 +17,10 @@ runs:
 
      # install nix
      # https://github.com/nixbuild/nix-quick-install-action/blob/master/action.yml
-    # - uses: nixbuild/nix-quick-install-action@v34
-    #   with:
-    #     nix_version: 2.31.2
-    #     nix_conf: |
-    #       accept-flake-config = true
-    #       http-connections = 128
-    #       max-substitution-jobs = 64
-    #       download-buffer-size = 268435456
-    #       ${{ inputs.nix_config }}
-    #     nix_on_tmpfs: true
-
-    - uses: cachix/install-nix-action@v31
+    - uses: nixbuild/nix-quick-install-action@v34
       with:
-        extra_nix_config: |
+        nix_version: 2.31.2
+        nix_conf: |
           accept-flake-config = true
           download-buffer-size = 268435456
           http-connections = 128
@@ -35,33 +28,49 @@ runs:
           keep-outputs = true
           max-substitution-jobs = 64
           ${{ inputs.nix_config }}
+        nix_on_tmpfs: true
+
+    # - uses: cachix/install-nix-action@v31
+    #   with:
+    #     extra_nix_config: |
+    #       accept-flake-config = true
+    #       download-buffer-size = 268435456
+    #       http-connections = 128
+    #       keep-derivations = true
+    #       keep-outputs = true
+    #       max-substitution-jobs = 64
+    #       ${{ inputs.nix_config }}
+
+    - uses: nixbuild/nixbuild-action/.github/workflows/ci-workflow.yml@v24
+      with:
+        nixbuild_token: ${{ inputs.NIXBUILD_TOKEN }}
 
     - uses: cachix/cachix-action@v16
       with:
         name: openpilot
         authToken: ${{ inputs.cachix_token }}
 
+    # configure nix cache
+    # https://github.com/nix-community/cache-nix-action?tab=readme-ov-file#inputs
+    # TODO: merge similar caches?
+    # https://github.com/nix-community/cache-nix-action/blob/main/.github/workflows/ci.yaml
+    # - uses: nix-community/cache-nix-action@v6
+    #   with:
+    #  # forces garbage collection before saving cache
+    #     gc-max-store-size: 0
+    #  # XXX: should it include the workflow yaml?
+    #     primary-key: nix-${{ env.SYSTEM_JOB }}-${{ hashFiles('**/*.nix', 'flake.lock', 'pyproject.toml')
+    #       }}
+    #     purge: true
+    #     purge-prefixes: nix-${{ env.SYSTEM_JOB }}
+    #     purge-last-accessed: P1D
+    #     restore-prefixes-first-match: nix-${{ env.SYSTEM_JOB }}
+
     - shell: bash
-      run: |
+      run: |-
         # set env
         SYSTEM=$(nix eval --impure --raw --expr builtins.currentSystem)
         cat <<EOF >> $GITHUB_ENV
         SYSTEM=$SYSTEM
         SYSTEM_JOB=$SYSTEM-${{ github.job }}
         EOF
-
-     # configure nix cache
-     # https://github.com/nix-community/cache-nix-action?tab=readme-ov-file#inputs
-     # TODO: merge similar caches?
-     # https://github.com/nix-community/cache-nix-action/blob/main/.github/workflows/ci.yaml
-    - uses: nix-community/cache-nix-action@v6
-      with:
-        # forces garbage collection before saving cache
-        gc-max-store-size: 0
-        # XXX: should it include the workflow yaml?
-        primary-key: nix-${{ env.SYSTEM_JOB }}-${{ hashFiles('**/*.nix', 'flake.lock', 'pyproject.toml')
-          }}
-        purge: true
-        purge-prefixes: nix-${{ env.SYSTEM_JOB }}
-        purge-last-accessed: P1D
-        restore-prefixes-first-match: nix-${{ env.SYSTEM_JOB }}
