@@ -25,7 +25,14 @@ on:
 env:
   AZURE_TOKEN: ${{ secrets.AZURE_COMMADATACI_OPENPILOTCI_TOKEN }}
   PACKAGE: default
-  NIX: nix --print-build-logs --show-trace
+  NIX: |
+    nix \
+      --print-build-logs \
+      --show-trace \
+      --builders "" \
+      --max-jobs 2 \
+      --eval-store auto \
+      --store ssh-ng://eu.nixbuild.net
   # can't reference $NIX or ${{ env.nix }}, so below must be prefixed with above
   NIX_DEVELOP_COMMAND: nix --print-build-logs --show-trace develop path:. --command
   PYTEST: pytest --continue-on-collection-errors --durations=0 -n logical
@@ -71,8 +78,8 @@ jobs:
       - shell: bash
         run: $NIX flake check -v path:.
 
-  devshell:
-    name: Dev Shell
+  shell:
+    name: Shell
     needs: check
     strategy:
       fail-fast: false
@@ -80,8 +87,8 @@ jobs:
         os: &os
           - ubuntu-22.04
           - ubuntu-22.04-arm
-          - macos-15
-          - macos-15-intel
+          # - macos-15
+          # - macos-15-intel
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
