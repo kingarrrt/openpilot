@@ -43,6 +43,21 @@ jobs:
     uses: nixbuild/nixbuild-action/.github/workflows/ci-workflow.yml@v24
     secrets:
       nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
+    with:
+      filter_builds: .system | contains("darwin")
+      # make nix ignore git - important for lfs
+      flake: path:.
+      lfs: true
+      nix_conf: |
+        accept-flake-config = true
+        download-buffer-size = 268435456
+        http-connections = 128
+        keep-derivations = true
+        keep-outputs = true
+        max-substitution-jobs = 64
+        ${{ inputs.nix_config }}
+      nix_on_tmpfs: true
+      nix_version: 2.31.2
 
   # check:
   #   name: Check
