@@ -1,13 +1,12 @@
+---
 name: nix-build
 description: Nix Build
-
 inputs:
   package:
     description: Package to build
     default: default
   flags:
     description: Flags passed to `nix build`
-
 runs:
   using: composite
   steps:

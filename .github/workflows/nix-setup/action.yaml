@@ -1,6 +1,6 @@
+---
 name: nix-setup
 description: Nix Setup
-
 inputs:
   cachix_token:
     description: Cachix auth token
@@ -10,7 +10,6 @@ inputs:
     required: true
   nix_config:
     description: Appended to /etc/nix/nix.conf
-
 runs:
   using: composite
   steps:
@@ -40,11 +39,9 @@ runs:
     #       keep-outputs = true
     #       max-substitution-jobs = 64
     #       ${{ inputs.nix_config }}
-
     - uses: nixbuild/nixbuild-action@v24
       with:
         nixbuild_token: ${{ inputs.NIXBUILD_TOKEN }}
-
     - uses: cachix/cachix-action@v16
       with:
         name: openpilot
@@ -65,7 +62,6 @@ runs:
     #     purge-prefixes: nix-${{ env.SYSTEM_JOB }}
     #     purge-last-accessed: P1D
     #     restore-prefixes-first-match: nix-${{ env.SYSTEM_JOB }}
-
     - shell: bash
       run: |-
         # set env
