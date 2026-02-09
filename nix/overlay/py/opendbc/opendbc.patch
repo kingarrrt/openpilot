@@ -1,0 +1,40 @@
+diff --git i/pyproject.toml w/pyproject.toml
+index d0d3cd27..b3a0a276 100644
+--- i/pyproject.toml
++++ w/pyproject.toml
+@@ -10,7 +10,6 @@ requires-python = ">=3.11,<3.13"  # pycapnp doesn't work with 3.13
+ urls = { "homepage" = "https://github.com/commaai/opendbc" }
+ 
+ dependencies = [
+-  "scons",
+   "numpy",
+   "crcmod-plus",
+   "tqdm",
+@@ -25,7 +24,7 @@ testing = [
+   "gcovr",
+   # FIXME: pytest 9.0.0 doesn't support unittest.SkipTest
+   "pytest==8.4.2",
+-  "pytest-coverage",
++  "pytest-cov",
+   "pytest-mock",
+   "pytest-randomly",
+   # https://github.com/pytest-dev/pytest-xdist/pull/1229
+@@ -34,7 +33,8 @@ testing = [
+   "hypothesis==6.47.*",
+   "parameterized>=0.8,<0.9",
+   "zstandard",
+-
++]
++dev = [
+   # static analysis
+   "ruff",
+   "ty",
+@@ -52,7 +52,7 @@ examples = [
+ ]
+ 
+ [build-system]
+-requires = ["setuptools"]
++requires = ["setuptools", "scons"]
+ build-backend = "setuptools.build_meta"
+ 
+ [tool.pytest.ini_options]
