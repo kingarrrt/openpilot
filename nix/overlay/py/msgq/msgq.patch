@@ -1,0 +1,95 @@
+diff --git i/SConstruct w/SConstruct
+index 476672b..6d1d5b2 100644
+--- i/SConstruct
++++ w/SConstruct
+@@ -16,10 +16,12 @@ cpppath = [
+   '/usr/lib/include',
+   '/opt/homebrew/include',
+   sysconfig.get_paths()['include'],
++  *os.getenv("CPPPATH", "").split(":"),
+ ]
+ 
+ libpath = [
+   '/opt/homebrew/lib',
++  *os.getenv("LIBPATH", "").split(":"),
+ ]
+ 
+ AddOption('--minimal',
+@@ -57,6 +59,8 @@ env = Environment(
+     "-g",
+     "-fPIC",
+     "-O2",
++    # XXX: this is a guess
++    "-DCL_TARGET_OPENCL_VERSION=120",
+     "-Wunused",
+     "-Werror",
+     "-Wshadow",
+diff --git i/msgq/event.cc w/msgq/event.cc
+index 854c620..a420f22 100644
+--- i/msgq/event.cc
++++ w/msgq/event.cc
+@@ -129,7 +129,7 @@ int Event::clear() const {
+ 
+   uint64_t val = 0;
+   // read the eventfd to clear it
+-  read(this->event_fd, &val, sizeof(uint64_t));
++  (void)read(this->event_fd, &val, sizeof(uint64_t));
+ 
+   return val;
+ }
+diff --git i/msgq/visionipc/visionbuf_cl.cc w/msgq/visionipc/visionbuf_cl.cc
+index c5621e7..d5449e9 100644
+--- i/msgq/visionipc/visionbuf_cl.cc
++++ w/msgq/visionipc/visionbuf_cl.cc
+@@ -25,7 +25,7 @@ static void *malloc_with_fd(size_t len, int *fd) {
+ 
+   unlink(full_path);
+ 
+-  ftruncate(*fd, len);
++  (void)ftruncate(*fd, len);
+   void *addr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
+   assert(addr != MAP_FAILED);
+ 
+diff --git i/pyproject.toml w/pyproject.toml
+index efbb89a..42b0667 100644
+--- i/pyproject.toml
++++ w/pyproject.toml
+@@ -12,22 +12,32 @@ classifiers = [
+   "Topic :: System :: Hardware",
+ ]
+ dependencies = [
+-  "setuptools",  # for distutils
+-  "Cython",
+-  "scons",
+-  "ruff",
++  "numpy",
++]
++
++[project.optional-dependencies]
++testing = [
+   "parameterized",
+   "coverage",
+-  "numpy",
+   "pytest",
+   "pytest-retry",
++]
++dev = [
++  "ruff",
+   "cppcheck",
+   "cpplint",
+   "codespell",
+-  "ty",
+   "lefthook",
++  "ty",
+ ]
+ 
++[build-system]
++requires = ["setuptools", "Cython", "numpy", "scons"]
++build-backend = "setuptools.build_meta"
++
++[tool.setuptools.package-data]
++msgq = ["ipc_pyx.so"]
++
+ # https://beta.ruff.rs/docs/configuration/#using-pyprojecttoml
+ [tool.ruff]
+ lint.select = ["E", "F", "W", "PIE", "C4", "ISC", "RUF100", "A"]
