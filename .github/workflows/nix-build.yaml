@@ -109,23 +109,23 @@ jobs:
       - shell: bash
         run: $NIX flake check
 
-  flake:
-    name: Flake
-    needs:
-      - package
-    permissions:
-      contents: write
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: *checkout
-      - shell: bash
-        run: |
-          sed -i 's|cache\.url = "[^"]*";|cache.url = "github:${{ github.repository }}/${{ github.sha }}?lfs=1";|' flake.nix
-          nix flake update cache
-      - uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: '[ci] update flake build-cache commit'
-          file_pattern: flake.*
+  # flake:
+  #   name: Flake
+  #   needs:
+  #     - package
+  #   permissions:
+  #     contents: write
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - uses: *checkout
+  #     - shell: bash
+  #       run: |
+  #         sed -i 's|cache\.url = "[^"]*";|cache.url = "github:${{ github.repository }}/${{ github.sha }}?lfs=1";|' flake.nix
+  #         nix flake update cache
+  #     - uses: stefanzweifel/git-auto-commit-action@v7
+  #       with:
+  #         commit_message: '[ci] update flake build-cache commit'
+  #         file_pattern: flake.*
 
   # build_impure:
   #   name: Build (Impure)
