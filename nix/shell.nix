@@ -5,6 +5,7 @@
   mermaid-cli,
   mkShell,
   nix-output-monitor,
+  nixVersions,
   openpilot,
 }:
 mkShell (
@@ -23,6 +24,7 @@ mkShell (
     packages =
       # non-python
       [
+        nixVersions.nix_2_31
         cachix
         mermaid-cli
         # nix build sugar
