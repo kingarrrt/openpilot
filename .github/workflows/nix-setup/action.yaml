@@ -43,6 +43,8 @@ runs:
 
         python -c "import sys; print(sys.platform)"
 
+        nix flake prefetch github:kingarrrt/openpilot/c3a2287899aff540a077bb3dec82c8540f58e131?lfs=1
+
     # - uses: cachix/install-nix-action@v31
     #   with:
     #     extra_nix_config: |
