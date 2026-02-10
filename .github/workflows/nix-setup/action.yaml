@@ -40,9 +40,11 @@ runs:
     #       keep-outputs = true
     #       max-substitution-jobs = 64
     #       ${{ inputs.nix_config }}
-    - uses: nixbuild/nixbuild-action@v24
-      with:
-        nixbuild_token: ${{ inputs.NIXBUILD_TOKEN }}
+
+    # - uses: nixbuild/nixbuild-action@v24
+    #   with:
+    #     nixbuild_token: ${{ inputs.NIXBUILD_TOKEN }}
+
     - uses: cachix/cachix-action@v16
       with:
         name: openpilot
@@ -52,17 +54,18 @@ runs:
     # https://github.com/nix-community/cache-nix-action?tab=readme-ov-file#inputs
     # TODO: merge similar caches?
     # https://github.com/nix-community/cache-nix-action/blob/main/.github/workflows/ci.yaml
-    # - uses: nix-community/cache-nix-action@v6
-    #   with:
-    #  # forces garbage collection before saving cache
-    #     gc-max-store-size: 0
-    #  # XXX: should it include the workflow yaml?
-    #     primary-key: nix-${{ env.SYSTEM_JOB }}-${{ hashFiles('**/*.nix', 'flake.lock', 'pyproject.toml')
-    #       }}
-    #     purge: true
-    #     purge-prefixes: nix-${{ env.SYSTEM_JOB }}
-    #     purge-last-accessed: P1D
-    #     restore-prefixes-first-match: nix-${{ env.SYSTEM_JOB }}
+    - uses: nix-community/cache-nix-action@v6
+      with:
+     # forces garbage collection before saving cache
+        gc-max-store-size: 0
+     # XXX: should it include the workflow yaml?
+        primary-key: nix-${{ env.SYSTEM_JOB }}-${{ hashFiles('**/*.nix', 'flake.lock', 'pyproject.toml')
+          }}
+        purge: true
+        purge-prefixes: nix-${{ env.SYSTEM_JOB }}
+        purge-last-accessed: P1D
+        restore-prefixes-first-match: nix-${{ env.SYSTEM_JOB }}
+
     - shell: bash
       run: |-
         # set env

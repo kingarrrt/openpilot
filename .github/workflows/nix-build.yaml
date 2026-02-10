@@ -26,12 +26,6 @@ env:
   AZURE_TOKEN: ${{ secrets.AZURE_COMMADATACI_OPENPILOTCI_TOKEN }}
   PACKAGE: default
   NIX: nix --print-build-logs --show-trace
-  # NIX_CONFIG: |
-  #   builders =
-  #   eval-store = auto
-  #   experimental-features = nix-command flakes
-  #   max-jobs = 2
-  #   store = ssh-ng://eu.nixbuild.net
   # can't reference $NIX or ${{ env.nix }}, so below must match NIX above
   NIX_DEVELOP_COMMAND: nix --print-build-logs --show-trace develop path:. --command
   PYTEST: pytest --continue-on-collection-errors --durations=0 -n logical

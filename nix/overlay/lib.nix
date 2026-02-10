@@ -9,7 +9,7 @@ lib.extend (
     makeLocal =
       drv:
       drv.overrideAttrs (drv: {
-        pname = self.localName drv.pname;
+        pname = self.localName (drv.pname or drv.name);
       });
 
     deepMergePythonAttrs =

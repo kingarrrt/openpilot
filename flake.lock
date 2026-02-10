@@ -1,6 +1,19 @@
 {
   "nodes": {
-    "build-cache": {
+    "build-cache-x86_64-linux": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1,
+        "narHash": "sha256-gL8YjwZD2PLFnLQadaTL2s0vYq5RaO17ahb6oPg3RRg=",
+        "path": "/nix/store/rqbgzakl5ld1d9z95p47mjcsfwffia9m-python3.12-openpilot-0.1.0-sconsCache",
+        "type": "path"
+      },
+      "original": {
+        "path": "/nix/store/rqbgzakl5ld1d9z95p47mjcsfwffia9m-python3.12-openpilot-0.1.0-sconsCache",
+        "type": "path"
+      }
+    },
+    "cache": {
       "inputs": {
         "build-cache-x86_64-linux": "build-cache-x86_64-linux",
         "cache-nix-action": "cache-nix-action",
@@ -28,19 +41,6 @@
         "repo": "openpilot",
         "rev": "c3a2287899aff540a077bb3dec82c8540f58e131",
         "type": "github"
-      }
-    },
-    "build-cache-x86_64-linux": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-gL8YjwZD2PLFnLQadaTL2s0vYq5RaO17ahb6oPg3RRg=",
-        "path": "/nix/store/rqbgzakl5ld1d9z95p47mjcsfwffia9m-python3.12-openpilot-0.1.0-sconsCache",
-        "type": "path"
-      },
-      "original": {
-        "path": "/nix/store/rqbgzakl5ld1d9z95p47mjcsfwffia9m-python3.12-openpilot-0.1.0-sconsCache",
-        "type": "path"
       }
     },
     "cache-nix-action": {
@@ -110,7 +110,7 @@
     "flake-utils": {
       "inputs": {
         "systems": [
-          "build-cache",
+          "cache",
           "systems"
         ]
       },
@@ -153,7 +153,7 @@
         "flake-compat": "flake-compat",
         "gitignore": "gitignore",
         "nixpkgs": [
-          "build-cache",
+          "cache",
           "nixpkgs"
         ]
       },
@@ -196,7 +196,7 @@
     "gitignore": {
       "inputs": {
         "nixpkgs": [
-          "build-cache",
+          "cache",
           "git-hooks",
           "nixpkgs"
         ]
@@ -373,7 +373,7 @@
     "pyproject-nix": {
       "inputs": {
         "nixpkgs": [
-          "build-cache",
+          "cache",
           "nixpkgs"
         ]
       },
@@ -447,7 +447,7 @@
     },
     "root": {
       "inputs": {
-        "build-cache": "build-cache",
+        "cache": "cache",
         "cache-nix-action": "cache-nix-action_2",
         "flake-utils": "flake-utils_2",
         "git-hooks": "git-hooks_2",

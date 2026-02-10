@@ -71,7 +71,7 @@
       flake = false;
     };
 
-    build-cache.url = "github:kingarrrt/openpilot/c3a2287899aff540a077bb3dec82c8540f58e131?lfs=1";
+    cache.url = "github:kingarrrt/openpilot/c3a2287899aff540a077bb3dec82c8540f58e131?lfs=1";
 
   };
 
@@ -89,7 +89,9 @@
         inherit (pkgs) callPackage;
 
         # the openpilot package
-        openpilot = callPackage ./. { };
+        openpilot = callPackage ./. {
+          inherit (inputs.cache.packages.${system}.default) sconsCache;
+        };
 
         # pre-commit config
         pre-commit = callPackage ./nix/pre-commit.nix { inherit system; };
@@ -111,12 +113,9 @@
         # `nix build` for default package, otherwise `nix build .#<name>`
         packages = {
 
-          inherit openpilot;
           default = openpilot;
 
-          openpilot-dev = openpilot.override {
-            inherit (inputs.build-cache.packages.${system}.default) sconsCache;
-          };
+          release = openpilot.override { sconsCache = null; };
 
           # for dev:
           #  - nix build --impure .#pkgs.acados
