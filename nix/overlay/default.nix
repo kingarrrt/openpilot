@@ -52,6 +52,7 @@ localPkgs
             name = builtins.baseNameOf patch;
             inherit src;
             patches = [ patch ];
+            allowSubstitutes = true;
           }
         else
           src;
