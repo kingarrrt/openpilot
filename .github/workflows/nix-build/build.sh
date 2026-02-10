@@ -7,7 +7,7 @@ set -euo pipefail
 package=$1
 flags=${2:-}
 
-$NIX build --out-link $package $flags .#${package/SYSTEM/$SYSTEM}
+$NIX build --out-link $package $flags .#$package
 
 # see ../../../flake.nix for explanation
 $NIX profile add .#saveFromGC

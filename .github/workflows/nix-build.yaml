@@ -97,7 +97,7 @@ jobs:
         with: *nix-secrets
       - uses: *nix-build
         with:
-          package: devShells.SYSTEM.default
+          package: devShells.${{ env.SYSTEM }}.default
 
   # check:
   #   name: Check
