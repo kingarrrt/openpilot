@@ -97,7 +97,7 @@ Pipfile
 .ionide
 
 # nix build result
-/result
+/result*
 
 # direnv
 /.direnv

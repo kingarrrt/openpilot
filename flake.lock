@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "build-cache": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1770458568,
+        "narHash": "sha256-4kUm2mbYyi7DZ2FxsolqD9WRutAEMfe0goCPcxQF/rM=",
+        "owner": "kingarrrt",
+        "repo": "openpilot",
+        "rev": "c483341061db97a884dd5b9f99c4b37461e2d1f5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kingarrrt",
+        "repo": "openpilot",
+        "rev": "c483341061db97a884dd5b9f99c4b37461e2d1f5",
+        "type": "github"
+      }
+    },
     "cache-nix-action": {
       "flake": false,
       "locked": {
@@ -34,7 +51,9 @@
     },
     "flake-utils": {
       "inputs": {
-        "systems": "systems"
+        "systems": [
+          "systems"
+        ]
       },
       "locked": {
         "lastModified": 1731533236,
@@ -93,6 +112,23 @@
         "type": "github"
       }
     },
+    "msgq-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1766946291,
+        "narHash": "sha256-9sIs/QXrQVZAb+1/WODd0/MzJT7JJE1LnsB+IkhfrJQ=",
+        "owner": "commaai",
+        "repo": "msgq",
+        "rev": "20f2493855ef32339b80f0ad76b3cb82210dc474",
+        "type": "github"
+      },
+      "original": {
+        "owner": "commaai",
+        "repo": "msgq",
+        "rev": "20f2493855ef32339b80f0ad76b3cb82210dc474",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1769330179,
@@ -106,6 +142,40 @@
         "owner": "nixos",
         "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "opendbc-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769760790,
+        "narHash": "sha256-AB+BiFpnFhYRPknuMu99zicrx271Ya5Fnj62R7cfeSg=",
+        "owner": "commaai",
+        "repo": "opendbc",
+        "rev": "e76c2cf5bb0042bc5822efa78fff0362feed7b54",
+        "type": "github"
+      },
+      "original": {
+        "owner": "commaai",
+        "repo": "opendbc",
+        "rev": "e76c2cf5bb0042bc5822efa78fff0362feed7b54",
+        "type": "github"
+      }
+    },
+    "panda-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769085986,
+        "narHash": "sha256-NGpooeRAwdmu7Lt524a1JgENj00NQYiqB+bgthM+T3w=",
+        "owner": "commaai",
+        "repo": "panda",
+        "rev": "81615ad9d53aef5583e064f340e9cdeb23d4119c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "commaai",
+        "repo": "panda",
+        "rev": "81615ad9d53aef5583e064f340e9cdeb23d4119c",
         "type": "github"
       }
     },
@@ -129,13 +199,37 @@
         "type": "github"
       }
     },
+    "rednose-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1747782152,
+        "narHash": "sha256-J5hLpGfEgp+Plf8Ap2O4sqh12LCL3jkwGvl1OLmz0EU=",
+        "owner": "commaai",
+        "repo": "rednose",
+        "rev": "7fddc8e6d49def83c952a78673179bdc62789214",
+        "type": "github"
+      },
+      "original": {
+        "owner": "commaai",
+        "repo": "rednose",
+        "rev": "7fddc8e6d49def83c952a78673179bdc62789214",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
+        "build-cache": "build-cache",
         "cache-nix-action": "cache-nix-action",
         "flake-utils": "flake-utils",
         "git-hooks": "git-hooks",
+        "msgq-src": "msgq-src",
         "nixpkgs": "nixpkgs",
-        "pyproject-nix": "pyproject-nix"
+        "opendbc-src": "opendbc-src",
+        "panda-src": "panda-src",
+        "pyproject-nix": "pyproject-nix",
+        "rednose-src": "rednose-src",
+        "systems": "systems",
+        "teleoprtc-src": "teleoprtc-src"
       }
     },
     "systems": {
@@ -150,6 +244,23 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "teleoprtc-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1720552182,
+        "narHash": "sha256-FR8B9JGzPZxcCiLHbLAvsVMha1D4Gu0OytZ65IzSMHQ=",
+        "owner": "commaai",
+        "repo": "teleoprtc",
+        "rev": "389815b8ca5302ce7c1504b7841d4eb61a8cd51b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "commaai",
+        "repo": "teleoprtc",
+        "rev": "389815b8ca5302ce7c1504b7841d4eb61a8cd51b",
         "type": "github"
       }
     }

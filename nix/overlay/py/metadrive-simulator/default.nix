@@ -18,7 +18,7 @@
 }:
 
 # FIXME: incomplete
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
 
   pname = "metadrive-simulator";
   version = "0.4.2.4";
@@ -27,7 +27,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "commaai";
     repo = "metadrive";
-    tag = "MetaDrive-minimal-${version}";
+    tag = "MetaDrive-minimal-${finalAttrs.version}";
     hash = "sha256-sEZAjvhGxEyxszFSMgURW32ySXRvkznV21j9Df72JH4=";
   };
 
@@ -55,4 +55,4 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "metadrive" ];
 
-}
+})

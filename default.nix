@@ -1,4 +1,5 @@
 {
+  # pkgs
   lib,
   stdenv,
   acados,
@@ -8,11 +9,10 @@
   capnproto,
   catch2,
   curl,
-  eigen,
   ffmpeg,
+  glibc,
   gcc-arm-embedded,
   gitMinimal,
-  glibc,
   hpipm,
   libGL,
   libjpeg,
@@ -23,142 +23,79 @@
   llvmPackages,
   makeWrapper,
   ncurses,
-  ocl-icd,
-  opencl-headers,
-  pyproject-nix, # flake input, not part of nixpkgs
-  pythonInterpreters,
   qpoases,
   raylib-local,
   xvfb-run,
   zeromq,
   zstd,
+  # resolved in ./flake.nix
+  # whether to start the build with a pre-built scons cache
+  sconsCache ? null,
+  nixosTest,
+  nixVersions,
+  loadPyproject,
+  rednose-src,
+  opendbc-src,
+  opencl-headers,
+  eigen,
+  msgq-src,
+  ocl-icd,
 }:
 let
 
-  # load ./pyproject.toml
-  project = pyproject-nix.lib.project.loadPyproject { projectRoot = ./.; };
+  inherit
+    (loadPyproject {
+      src = srcFilter ./.;
+      # src = ./.;
+      # pyproject.toml is needed at eval time so must be patched early
+      patches = [ ./nix/patches/pyproject.patch ];
 
-  # get the best available python within the project.requires-python constraint, and
-  # overlay local overrides
-  python = builtins.head (
-    pyproject-nix.lib.util.filterPythonInterpreters {
-      inherit (project) requires-python;
-      inherit pythonInterpreters;
-    }
-  );
+      build-system = [
+        acados # selfdrive/controls
+        blasfeo # ./selfdrive/controls
+        bzip2 # ./selfdrive/pandad
+        capnproto # ./cereal
+        catch2 # self
+        curl # ./system/loggerd
+        eigen # rednose transitive
+        ffmpeg # ./tools/replay
+        hpipm # ./selfdrive/controls
+        libjpeg # ./system/loggerd
+        # TODO: split this out into its own build
+        libsForQt5.qtbase # ./tools/cabana
+        libsForQt5.qt5.qtcharts # ./tools/cabana
+        libsForQt5.qt5.qtserialbus # ./tools/cabana
+        libusb1 # ./selfdrive/panda
+        libyuv-local # ./system/loggerd ./tools/replay
+        llvmPackages.clang # everything
+        ncurses # ./tools/replay
+        ocl-icd # ./selfdrive/modeld
+        opencl-headers # ./common
+        qpoases # ./selfdrive/controls
+        raylib-local # ./selfdrive/ui
+        zeromq # ./common
+        zstd # ./system/loggerd
+        python.pkgs.build # installPhase
+        python.pkgs.msgq
+        python.pkgs.opendbc
+        python.pkgs.panda
+        python.pkgs.rednose
+      ]
+      ++ lib.optionals stdenv.hostPlatform.isLinux [
+        gcc-arm-embedded # ./panda
+        libGL # ./selfdrive/ui
+      ];
 
-  # constituent packages
+    })
+    pyAttrs
+    python
+    ;
+
+  # python packages installed to ssitePackages
   packages = [
     "cereal"
-    "msgq"
-    "opendbc"
     "openpilot"
-    "panda"
-    "rednose"
-    "teleoprtc"
-    "tinygrad"
   ];
-
-  # render attribute set, which is passed to buildPythonPackage, this must be done
-  # here instead of patching ./pyproject.toml because it is needed while evaluating,
-  # when patches are applied as part of building
-  # TODO: move to ./pyproject.toml
-  pyAttrs =
-    let
-
-      pyAttrs = project.renderers.buildPythonPackage {
-        inherit python;
-        extrasAttrMappings = {
-          docs = "nativeCheckInputs";
-          testing = "nativeCheckInputs";
-        };
-      };
-
-      replaceLocal =
-        name: local: drvs:
-        (builtins.filter (drv: drv.pname != name) drvs) ++ [ local ];
-
-    in
-    lib.recursiveUpdate pyAttrs {
-
-      # TODO: these changes (apart from the local overrides to hypothesis and
-      # pytest-xdist) should be made in ./pyproject.toml
-
-      build-system =
-        pyAttrs.build-system
-        ++ (with python.pkgs; [
-          cython
-          scons
-        ]);
-
-      dependencies =
-        with python.pkgs;
-        replaceLocal "pycapnp" pycapnp-local (
-          builtins.filter (
-            drv:
-            !builtins.elem drv.pname [
-              "casadi" # not-required (transitive dependency of acados-template)
-              "cython" # move to build-system
-              "future-fstrings" # not-required
-              "pyopenssl" # relax constraint
-              "scons" # move to build-system
-              "setuptools" # not-required
-            ]
-          ) pyAttrs.dependencies
-        )
-        ++ [
-          acados-template
-          pyopenssl
-        ];
-
-      optional-dependencies = {
-
-        testing =
-          (builtins.filter (
-            drv:
-            !builtins.elem drv.pname [
-              # XXX: hypothesis and pytest-xdist dependencies are replaced with
-              # "<name>-local" derivations because many python packages depend on them,
-              # so overlaying with the unsuffixed name would cause a mass rebuild. This
-              # would be necessary if they were runtime dependencies because a python
-              # environment can't have multiple versions of a package, but they are not.
-              "hypothesis"
-              "pytest-xdist"
-              "ruff" # move to dev
-              "ty" # move to dev
-            ]
-          ) pyAttrs.optional-dependencies.testing)
-          ++ (with python.pkgs; [
-            parameterized
-            tabulate
-            hypothesis-local
-            pytest-xdist-local
-          ]);
-
-        dev =
-          (builtins.filter (
-            drv:
-            !builtins.elem drv.pname (
-              [
-                "parameterized" # move to testing
-                "tabulate" # move to testing
-              ]
-              ++ lib.optionals stdenv.hostPlatform.isDarwin [
-                # depends on xvfb-run which is not available
-                "pyautogui"
-                # depends on pymonctl which is marked broken
-                "pywinctl"
-              ]
-            )
-          ) pyAttrs.optional-dependencies.dev)
-          ++ (with python.pkgs; [
-            ruff
-            ty
-          ]);
-
-      };
-
-    };
 
   # the output's lib/pythonX.XX/site-packages directory where the package is installed
   sitePackages = "${builtins.placeholder "out"}/${python.sitePackages}";
@@ -191,7 +128,7 @@ let
                   "launch_"
                 ])
               )
-            ) pyAttrs.src)
+            ) root)
             # by path
             (
               unions (
@@ -235,7 +172,12 @@ in
 # https://nixos.org/manual/nixpkgs/stable/#buildpythonpackage-function
 python.pkgs.buildPythonPackage (
   drv:
-  (lib.recursiveUpdate pyAttrs {
+  (lib.deepMergePythonAttrs pyAttrs {
+
+    outputs = [
+      "out"
+      "sconsCache"
+    ];
 
     # from qtbase setupHook, not necessary
     dontPatchMkspecs = true;
@@ -247,7 +189,7 @@ python.pkgs.buildPythonPackage (
     enableParallelBuilding = true;
 
     # filter source
-    src = srcFilter ./.;
+    # src = srcFilter pyAttrs.src;
 
     prePatch = ''
       # verify lfs checkout
@@ -262,19 +204,17 @@ python.pkgs.buildPythonPackage (
       fi
 
       # patchShebangs is noisy
-      eval "_$(declare -f patchShebangs)"
-      patchShebangs() {
-        _patchShebangs "$@" > /dev/null
-      }
+      # eval "_$(declare -f patchShebangs)"
+      # patchShebangs() {
+      #   _patchShebangs "$@" > /dev/null
+      # }
 
       # /usr/bin/env is not available in the nix sandbox
       patchShebangs \
-        opendbc_repo/opendbc/dbc/generator/*/*.py \
         panda/crypto/sign.py \
         selfdrive/locationd/models/*_kf.py
     '';
 
-    # mods to openpilot as a patch set so as not to mess with existing tools
     patches = [
       ./nix/patches/sconstruct.patch
       ./nix/patches/includes.patch
@@ -283,67 +223,33 @@ python.pkgs.buildPythonPackage (
       ./nix/patches/warnings.patch
     ];
 
-    nativeBuildInputs = [
-      acados # selfdrive/controls
-      blasfeo # ./selfdrive/controls
-      bzip2 # ./selfdrive/pandad
-      capnproto # ./cereal
-      catch2 # self + msgq_repo
-      curl # ./system/loggerd
-      eigen # ./rednose_repo
-      ffmpeg # ./tools/replay
-      # FIXME: ./panda/SConscript tries to get git revision which can't work in
-      # a nix build because the .git directory is stripped
-      gitMinimal # ./panda
-      hpipm # ./selfdrive/controls
-      libjpeg # ./system/loggerd
-      libsForQt5.qtbase # ./tools/cabana
-      libsForQt5.qt5.qtcharts # ./tools/cabana
-      libsForQt5.qt5.qtserialbus # ./tools/cabana
-      libusb1 # ./selfdrive/panda
-      libyuv-local # ./system/loggerd ./tools/replay
-      llvmPackages.clang # everything
-      ncurses # ./tools/replay
-      ocl-icd # ./rednose_repo ./msgq_repo/
-      opencl-headers # ./msgq_repo
-      qpoases # ./selfdrive/controls
-      raylib-local # ./selfdrive/ui
-      zeromq # ./common ./msgq_repo
-      zstd # ./system/loggerd
-      python.pkgs.build # installPhase
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isLinux [
-      gcc-arm-embedded # ./panda
-      libGL # ./selfdrive/ui
-    ];
+    postPatch = ''
+      # cp ${rednose-src}/site_scons/site_tools/rednose_filter.py site_scons/site_tools
+      ln -sf ${rednose-src} rednose_repo
+      ln -sf ${msgq-src} msgq_repo
+      ln -sf ${python.pkgs.tinygrad.src} tinygrad_repo
+      ln -sf ${python.pkgs.msgq}/${python.sitePackages}/msgq
+      cp --remove-destination ${opendbc-src}/opendbc/car/car.capnp cereal
+    '';
 
-    nativeCheckInputs = pyAttrs.nativeCheckInputs ++ [
-      python.pkgs.pytestCheckHook
-    ];
-
-    env =
+    env = {
+      ACADOS_SOURCE_DIR = acados;
+      ACADOS_TEMPLATE_DIR =
+        python.pkgs.localPkgs.acados-template
+        + "/"
+        + python.sitePackages
+        + "/acados_template";
+      GLIBC_TUNABLES = "glibc.rtld.execstack=2";
+      SCONS_CACHE = "/tmp/scons_cache";
+    }
+    // (
       with lib;
-      {
-        ACADOS_SOURCE_DIR = acados;
-        ACADOS_TEMPLATE_DIR =
-          python.pkgs.acados-template + "/" + python.sitePackages + "/acados_template";
-        CPPPATH = makeIncludePath (map getInclude drv.nativeBuildInputs);
-        LIBPATH = makeLibraryPath (map getLib drv.nativeBuildInputs);
-        GLIBC_TUNABLES = "glibc.rtld.execstack=2";
-      }
-      // optionalAttrs stdenv.hostPlatform.isLinux {
+      optionalAttrs stdenv.hostPlatform.isLinux {
         # tinygrad
         LIBC_PATH = "${getLib glibc}/lib/libc.so.6";
         LLVM_PATH = "${getLib llvm}/lib/libLLVM.so.21.1";
       }
-      // (
-        # set SCONS_CACHE from environment
-        # NOTE: this is impure, so only works with `nix build --impure`
-        let
-          SCONS_CACHE = builtins.getEnv "SCONS_CACHE";
-        in
-        optionalAttrs (SCONS_CACHE != "") { inherit SCONS_CACHE; }
-      );
+    );
 
     # HACK: buildPythonPackage.buildPhase uses pypa build to create a wheel,
     # <nixpkgs/pkgs/development/interpreters/python/hooks/pypa-build-hook.sh>,
@@ -353,22 +259,23 @@ python.pkgs.buildPythonPackage (
     # deterministic with `nix build && nix build --rebuild`
     pyproject = false;
 
-    # ./selfdrive/modeld/SConscript calls tinygrad which uses HOME for a cache
-    preBuild = ''
-      export HOME=$(mktemp -d)
-    '';
-
-    # expose scons flags so they can be overridden
+    # expose scons flags for overriding
     sconsFlags = [ "--jobs=$NIX_BUILD_CORES" ];
 
     buildPhase = ''
-      runHook preBuild
-      scons ${builtins.concatStringsSep " " drv.sconsFlags}
-      runHook postBuild
-    '';
 
-    # clean what we no longer need
-    postBuild = ''
+      # setup scons cache
+      ${lib.optionalString (sconsCache != null) ''
+        cp -ar ${sconsCache} $SCONS_CACHE
+        chmod -R u+w $SCONS_CACHE
+      ''}
+
+      # tinygrad wants home to write a cache
+      export HOME=$(mktemp -d)
+
+      scons ${builtins.concatStringsSep " " drv.sconsFlags}
+
+      # clean what we no longer need
       find . -depth \( \
         -type f \( ${
           lib.concatMapStringsSep " -or " (name: "-name \"${name}\"") (
@@ -420,20 +327,49 @@ python.pkgs.buildPythonPackage (
           find ${sitePackages} -name \*.py | xargs python -m py_compile
       }
 
+      # keep the scons cache
+      cp -ar $SCONS_CACHE $sconsCache
+
       runHook postInstall
     '';
 
-    pytestFlags = [ "-v" ];
+    doCheck = false;
+
+    pytestFlags = [
+      "-v"
+      "--durations=0"
+    ]
+    ++ (map (test: "--deselect=${test}") [
+      "selfdrive/locationd/test/test_paramsd.py::TestParamsd::test_read_saved_params"
+      "selfdrive/locationd/test/test_paramsd.py::TestParamsd::test_read_saved_old_format"
+      "selfdrive/locationd/test/test_lagd.py::TestLagd::test_read_saved_params"
+      "system/manager/test/test_manager.py::TestManager::test_manager_prepare"
+      "system/manager/test/test_manager.py::TestManager::test_set_params_with_default_value"
+      "system/manager/test/test_manager.py::TestManager::test_duplicate_procs"
+    ]);
 
     disabledTestPaths = [
-      # wants sudo
-      "system/updated/tests/test_git.py"
-      # wants net
+      "cereal/messaging/tests/test_messaging.py"
+      "cereal/messaging/tests/test_pub_sub_master.py"
+      "cereal/messaging/tests/test_services.py"
+      "system/athena/tests/test_athenad.py"
       "selfdrive/car/tests/test_car_interfaces.py"
+      "selfdrive/car/tests/test_cruise_speed.py"
       "selfdrive/car/tests/test_models.py"
+      "selfdrive/controls/tests/test_following_distance.py"
+      "selfdrive/controls/tests/test_latcontrol.py"
+      "selfdrive/controls/tests/test_latcontrol_torque_buffer.py"
       "selfdrive/locationd/test/test_locationd_scenarios.py"
+      "selfdrive/test/longitudinal_maneuvers/test_longitudinal.py"
+      "selfdrive/test/process_replay/test_fuzzy.py"
+      "selfdrive/test/test_onroad.py"
+      "selfdrive/ui/tests/test_translations.py"
+      "system/hardware/tici/tests/test_power_draw.py"
+      "system/loggerd/tests/test_deleter.py"
+      "system/loggerd/tests/test_encoder.py"
       "system/loggerd/tests/test_loggerd.py"
       "system/loggerd/tests/test_uploader.py"
+      "system/updated/tests/test_git.py"
       "system/webrtc/tests/test_webrtcd.py"
       "tools/lib/tests/test_caching.py"
       "tools/lib/tests/test_logreader.py"
@@ -442,6 +378,54 @@ python.pkgs.buildPythonPackage (
     pythonImportsCheck = packages;
 
     passthru = {
+
+      # openpilot-test.nix
+
+      t = nixosTest {
+        name = "openpilot-pytest";
+
+        nodes.machine = _: {
+
+          networking = {
+            firewall.enable = false;
+            nameservers = [
+              "1.1.1.1"
+              "8.8.8.8"
+            ];
+          };
+
+          virtualization = {
+            memorySize = 1024 * 8;
+            diskSize = 1024 * 5;
+            # cores = 4;
+            useNixStoreImage = true;
+          };
+
+          environment.systemPackages = [
+            drv.finalPackage
+            cacert
+            ffmpeg
+            gitMinimal
+            llvmPackages.clang
+            nixVersions.latest
+          ];
+
+        };
+
+        testScript = ''
+          start_all()
+
+          machine.wait_for_unit("multi-user.target")
+          machine.wait_for_unit("network.target")
+
+          machine.succeed("ping -c 1 1.1.1.1")
+
+          machine.succeed("cp -ar ${drv.finalPackage} ${drv.pname}")
+          machine.succeed("chmod -R u+w ${drv.pname}")
+
+          machine.succeed("cd ${drv.pname} && pytest -v --tb=short")
+        '';
+      };
 
       # nix/flakes don't play nice with lfs - it may end up putting a pointer in the
       # store - builtin.path ignores git so the files are copied verbatim

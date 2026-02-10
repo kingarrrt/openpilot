@@ -1,8 +1,8 @@
 diff --git i/pyproject.toml w/pyproject.toml
-index d0d3cd27..b3a0a276 100644
+index d0d3cd27..58f04e0e 100644
 --- i/pyproject.toml
 +++ w/pyproject.toml
-@@ -10,7 +10,6 @@ requires-python = ">=3.11,<3.13"  # pycapnp doesn't work with 3.13
+@@ -10,22 +10,21 @@ requires-python = ">=3.11,<3.13"  # pycapnp doesn't work with 3.13
  urls = { "homepage" = "https://github.com/commaai/opendbc" }
  
  dependencies = [
@@ -10,8 +10,16 @@ index d0d3cd27..b3a0a276 100644
    "numpy",
    "crcmod-plus",
    "tqdm",
-@@ -25,7 +24,7 @@ testing = [
-   "gcovr",
+   "pycapnp==2.1.0",
+   "pycryptodome",
++  "zstandard",
+ ]
+ 
+ [project.optional-dependencies]
+ testing = [
+   "comma-car-segments @ https://huggingface.co/datasets/commaai/commaCarSegments/resolve/main/dist/comma_car_segments-0.1.0-py3-none-any.whl",
+   "cffi",
+-  "gcovr",
    # FIXME: pytest 9.0.0 doesn't support unittest.SkipTest
    "pytest==8.4.2",
 -  "pytest-coverage",
@@ -19,13 +27,15 @@ index d0d3cd27..b3a0a276 100644
    "pytest-mock",
    "pytest-randomly",
    # https://github.com/pytest-dev/pytest-xdist/pull/1229
-@@ -34,7 +33,8 @@ testing = [
+@@ -33,8 +32,9 @@ testing = [
+   "pytest-subtests",
    "hypothesis==6.47.*",
    "parameterized>=0.8,<0.9",
-   "zstandard",
+-  "zstandard",
 -
 +]
 +dev = [
++  "gcovr",
    # static analysis
    "ruff",
    "ty",
@@ -38,3 +48,9 @@ index d0d3cd27..b3a0a276 100644
  build-backend = "setuptools.build_meta"
  
  [tool.pytest.ini_options]
+@@ -146,4 +146,5 @@ too-many-positional-arguments = "ignore"
+ include-package-data = true
+ 
+ [tool.setuptools.package-data]
++"*" = ["*.dbc"]
+ "opendbc.safety" = ["*.h", "board/*.h", "board/drivers/*.h", "modes/*.h"]

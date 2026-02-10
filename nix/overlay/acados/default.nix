@@ -7,7 +7,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
 
-  pname = "acados";
+  pname = lib.localName "acados";
   version = "0.2.2";
 
   src = fetchFromGitHub {
@@ -52,7 +52,7 @@ stdenv.mkDerivation (finalAttrs: {
     }/bin/t_renderer $out/bin
     dir=$out/interfaces/acados_template/acados_template
     mkdir -p $dir
-    cp ${../../../third_party/acados/acados_template/acados_layout.json} $dir/acados_layout.json;
+    cp ${./acados_layout.json} $dir/acados_layout.json
   '';
 
   passthru.to_upstream = true;

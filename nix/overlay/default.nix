@@ -1,23 +1,164 @@
-_self: super:
+inputs: self: super:
 let
-  lib = import ./lib.nix super.lib;
-in
-{
 
-  inherit lib;
+  lib = import ./lib.nix super.lib;
+
+  mkLocalPkgs =
+    self: path:
+    builtins.mapAttrs (name: _type: self.callPackage "${path}/${name}" { }) (
+      lib.filterAttrs (name: type: type == "directory" && name != "py") (
+        builtins.readDir path
+      )
+    );
+
+  # mkLocalPkgs =
+  #   self: path:
+  #   builtins.mapAttrs (name: _type: self.callPackage "${path}/${name}" { }) (
+  #     lib.filterAttrs (
+  #       name: type:
+  #       type == "directory"
+  #       && name != "py"
+  #       # Don't scan the Python extensions folder
+  #       && name != "lib.nix" # Don't try to callPackage your library file
+  #     ) (builtins.readDir path)
+  #   );
+
+  localPkgs = mkLocalPkgs self ./.;
+
+in
+localPkgs
+// inputs
+// {
+
+  inherit lib localPkgs mkLocalPkgs;
 
   pythonPackagesExtensions = super.pythonPackagesExtensions ++ [
     (self: super: import ./py self super)
   ];
 
-  acados = super.callPackage ./acados { };
+  loadPyproject =
+    {
+      src,
+      patches ? null,
+      pythonInterpreter ? null,
+      ...
+    }@attrs:
 
-  # using -local suffix so other packages depending on these do not need to be rebuilt
+    let
 
-  ${lib.localName "libyuv"} = super.callPackage ./libyuv { };
+      project = inputs.pyproject-nix.lib.project.loadPyproject {
+        projectRoot =
+          if (patches != null) then
+            self.applyPatches {
+              # has to have a name, doesn't matter what it is
+              name = "patched";
+              inherit patches src;
+            }
+          else
+            src;
+      };
 
-  ${lib.localName "raygui"} = super.callPackage ./raygui { };
+      # if not supplied with a python3 use the best available python within the
+      # project.requires-python constraint
+      python =
+        if pythonInterpreter == null then
+          builtins.head (
+            inputs.pyproject-nix.lib.util.filterPythonInterpreters {
+              inherit (project) requires-python;
+              inherit (self) pythonInterpreters;
+            }
+          )
+        else
+          pythonInterpreter;
 
-  ${lib.localName "raylib"} = super.callPackage ./raylib { };
+      pyAttrs =
+        let
+          replaceLocals =
+            value:
+            if lib.isDerivation value then
+              python.pkgs.localPkgs.${lib.localName (value.pname or value.name or "")}
+                or value
+            else if (lib.isList value) then
+              map replaceLocals value
+            else if (lib.isAttrs value) then
+              lib.mapAttrs (_n: replaceLocals) value
+            else
+              value;
+        in
+        replaceLocals (
+          lib.deepMergePythonAttrs' [
+            # render package attrs
+            (project.renderers.buildPythonPackage {
+              inherit python;
+              pythonPackages = python.pkgs.localPkgSet;
+              extrasAttrMappings = {
+                docs = "nativeCheckInputs";
+                testing = "nativeCheckInputs";
+              };
+            })
+            # defaults
+            { nativeCheckInputs = with python.pkgs; [ pytestCheckHook ]; }
+            # from args
+            (builtins.removeAttrs attrs [
+              "src"
+              "pythonInterpreter"
+              "patches"
+            ])
+          ]
+        );
+
+    in
+    {
+      inherit project pyAttrs python;
+    }
+    // {
+      pyAttrs = lib.deepMergePythonAttrs' [
+        pyAttrs
+        {
+
+          # append git short rev as local label
+          version =
+            let
+              shortRev = src.shortRev or src.dirtyShortRev or null;
+            in
+            pyAttrs.version + (if (shortRev != null) then "+g" + shortRev else "");
+
+          # pass through include and library paths
+          env = with lib; {
+            CPPPATH = makeIncludePath (map getInclude (pyAttrs.build-system or [ ]));
+            LIBPATH = makeLibraryPath (map getLib (pyAttrs.build-system or [ ]));
+          };
+
+          # run scons if the project uses it
+          preBuild =
+            if
+              (builtins.any (drv: (drv.pname or drv.name or "") == "scons") (
+                pyAttrs.build-system or [ ]
+              ))
+            then
+              "scons --jobs=$NIX_BUILD_CORES"
+            else
+              "";
+
+          # UPSTREAM: should be done by pyproject-nix
+          pythonImportsCheck =
+            pyAttrs.pythonImportsCheck or [ (pyAttrs.pname or pyAttrs.name) ];
+
+          # TOGO: for dev
+          passthru = { inherit project pyAttrs; };
+
+        }
+      ];
+    };
+
+  buildPyproject =
+    args:
+    let
+      inherit (self.loadPyproject args) pyAttrs python;
+    in
+    python.pkgs.buildPythonPackage pyAttrs;
+
+  # aliases
+  lefthook-go = super.lefthook;
 
 }

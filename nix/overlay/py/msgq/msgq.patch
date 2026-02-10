@@ -51,7 +51,7 @@ index c5621e7..d5449e9 100644
    assert(addr != MAP_FAILED);
  
 diff --git i/pyproject.toml w/pyproject.toml
-index efbb89a..42b0667 100644
+index efbb89a..19636a8 100644
 --- i/pyproject.toml
 +++ w/pyproject.toml
 @@ -12,22 +12,32 @@ classifiers = [
@@ -88,7 +88,7 @@ index efbb89a..42b0667 100644
 +build-backend = "setuptools.build_meta"
 +
 +[tool.setuptools.package-data]
-+msgq = ["ipc_pyx.so"]
++"*" = ["*.pxd", "*.so"]
 +
  # https://beta.ruff.rs/docs/configuration/#using-pyprojecttoml
  [tool.ruff]

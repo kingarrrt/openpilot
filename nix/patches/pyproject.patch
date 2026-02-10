@@ -1,0 +1,100 @@
+diff --git i/pyproject.toml w/pyproject.toml
+index 9a70f69d2..9c9e11a46 100644
+--- i/pyproject.toml
++++ w/pyproject.toml
+@@ -17,23 +17,26 @@ dependencies = [
+   "crcmod-plus",  # cars + qcomgpsd
+   "tqdm",         # cars (fw_versions.py) on start + many one-off uses
+ 
++  # components
++  "msgq",
++  "opendbc",
++  "panda",
++  "rednose",
++  "teleoprtc",
++  "tinygrad",
++
+   # hardwared
+   "smbus2", # configuring amp
+ 
+   # core
+   "cffi",
+-  "scons",
+   "pycapnp==2.1.0",
+-  "Cython",
+-  "setuptools",
+   "numpy >=2.0",
+ 
+   # body / webrtcd
+   "aiohttp",
+   "aiortc",
+-  # aiortc does not put an upper bound on pyopenssl and is now incompatible
+-  # with the latest release
+-  "pyopenssl < 24.3.0",
++  "pyopenssl",
+   "pyaudio",
+ 
+   # ubloxd (TODO: just use struct)
+@@ -57,8 +60,7 @@ dependencies = [
+   "websocket_client",
+ 
+   # acados deps
+-  "casadi >=3.6.6",  # 3.12 fixed in 3.6.6
+-  "future-fstrings",
++  "acados-template",  # 3.12 fixed in 3.6.6
+ 
+   # joystickd
+   "inputs",
+@@ -87,7 +89,7 @@ docs = [
+ testing = [
+   "coverage",
+   "hypothesis ==6.47.*",
+-  "ty",
++  "parameterized >=0.8, <0.9",
+   "pytest",
+   "pytest-cpp",
+   "pytest-subtests",
+@@ -98,26 +100,28 @@ testing = [
+   "pytest-asyncio",
+   "pytest-mock",
+   "pytest-repeat",
+-  "ruff",
+-  "codespell",
+   "pre-commit-hooks",
++  "tabulate",
+ ]
+ 
+ dev = [
+   "av",
+   "azure-identity",
+   "azure-storage-blob",
++  "codespell",
+   "dictdiffer",
+   "jeepney",
+   "matplotlib",
+   "opencv-python-headless",
+-  "parameterized >=0.8, <0.9",
+-  "pyautogui",
++  # depends on xvfb-run which is not available
++  "pyautogui; sys_platform != 'darwin'",
+   "pyopencl",
+   "pytools>=2025.1.6; platform_machine != 'aarch64'",
+-  "pywinctl",
++  # depends on pymonctl which is marked broken
++  "pywinctl; sys_platform != 'darwin'",
+   "pyprof2calltree",
+-  "tabulate",
++  "ruff",
++  "ty",
+   "types-requests",
+   "types-tabulate",
+ ]
+@@ -131,7 +135,7 @@ tools = [
+ Homepage = "https://github.com/commaai/openpilot"
+ 
+ [build-system]
+-requires = ["hatchling"]
++requires = ["hatchling", "Cython", "scons", "numpy"]
+ build-backend = "hatchling.build"
+ 
+ [tool.hatch.build.targets.wheel]

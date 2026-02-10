@@ -1,8 +1,6 @@
 {
-  lib,
   # pkgs
   llvmPackages,
-  tree,
   gcc-arm-embedded,
   # python.pkgs
   buildPyproject,
@@ -29,15 +27,13 @@ buildPyproject {
 
   postPatch = "patchShebangs crypto/sign.py";
 
-  # preCheck = ''
-  #   # echo $PYTHONPATH
-  #   ${lib.getExe tree} board
-  #   exit 1
-  # '';
+  postInstall = ''
+    # install headers
+    tgt=$out/include/panda
+    mkdir -p $tgt
+    find . -name "*.h" -exec cp --parents \{\} $tgt \;
+  '';
 
   pythonImportsCheck = [ "panda" ];
-  # pythonImportsCheck = [ ];
-
-  # doCheck = false;
 
 }

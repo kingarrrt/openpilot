@@ -14,7 +14,7 @@ in
 lib.makeLocal (
   (raylib.override { sharedLib = !isDarwin; }).overrideAttrs (drv: {
 
-    version = "5.5";
+    version = "git";
 
     src = fetchFromGitHub {
       owner = "commaai";

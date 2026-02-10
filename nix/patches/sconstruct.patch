@@ -1,5 +1,5 @@
 diff --git i/SConstruct w/SConstruct
-index 094503cfa..3240499d5 100644
+index 094503cfa..d6965982c 100644
 --- i/SConstruct
 +++ w/SConstruct
 @@ -39,14 +39,11 @@ assert arch in [
@@ -37,22 +37,121 @@ index 094503cfa..3240499d5 100644
    ],
    RPATH=[],
    CYTHONCFILESUFFIX=".cpp",
-@@ -169,6 +168,11 @@ Export('env', 'arch')
+@@ -180,26 +179,14 @@ Import('_common')
+ common = [_common, 'json11', 'zmq']
+ Export('common')
  
- # Setup cache dir
- cache_dir = '/data/scons_cache' if arch == "larch64" else '/tmp/scons_cache'
-+cache_dir = os.getenv(
-+  "SCONS_CACHE",
-+  '/data/scons_cache' if arch == "larch64" else '/tmp/scons-cache'
-+)
-+print(f"scons: cache dir {cache_dir}")
- CacheDir(cache_dir)
- Clean(["."], cache_dir)
+-# Build messaging (cereal + msgq + socketmaster + their dependencies)
+-# Enable swaglog include in submodules
+-env_swaglog = env.Clone()
+-env_swaglog['CXXFLAGS'].append('-DSWAGLOG="\\"common/swaglog.h\\""')
+-SConscript(['msgq_repo/SConscript'], exports={'env': env_swaglog})
+-SConscript(['opendbc_repo/SConscript'], exports={'env': env_swaglog})
++# Build messaging (cereal + socketmaster)
  
+ SConscript(['cereal/SConscript'])
+ 
+-Import('socketmaster', 'msgq')
+-messaging = [socketmaster, msgq, 'capnp', 'kj',]
++Import('socketmaster')
++messaging = [socketmaster, 'msgq', 'capnp', 'kj',]
+ Export('messaging')
+ 
+-
+-# Build other submodules
+-SConscript(['panda/SConscript'])
+-
+-# Build rednose library
+-SConscript(['rednose/SConscript'])
+-
+ # Build system services
+ SConscript([
+   'system/ubloxd/SConscript',
+diff --git i/cereal/SConscript w/cereal/SConscript
+index a58a9490c..93b3d4c0c 100644
+--- i/cereal/SConscript
++++ w/cereal/SConscript
+@@ -1,4 +1,4 @@
+-Import('env', 'common', 'msgq')
++Import('env', 'common')
+ 
+ cereal_dir = Dir('.')
+ gen_dir = Dir('gen')
+@@ -13,7 +13,7 @@ cereal = env.Library('cereal', [f'gen/cpp/{s}.c++' for s in schema_files])
+ 
+ # Build messaging
+ services_h = env.Command(['services.h'], ['services.py'], 'python3 ' + cereal_dir.path + '/services.py > $TARGET')
+-env.Program('messaging/bridge', ['messaging/bridge.cc', 'messaging/msgq_to_zmq.cc'], LIBS=[msgq, common, 'pthread'])
++env.Program('messaging/bridge', ['messaging/bridge.cc', 'messaging/msgq_to_zmq.cc'], LIBS=["msgq", common, 'pthread'])
+ 
+ socketmaster = env.Library('socketmaster', ['messaging/socketmaster.cc'])
+ 
+diff --git i/selfdrive/controls/lib/lateral_mpc_lib/SConscript w/selfdrive/controls/lib/lateral_mpc_lib/SConscript
+index c9ebf8920..77e5bc584 100644
+--- i/selfdrive/controls/lib/lateral_mpc_lib/SConscript
++++ w/selfdrive/controls/lib/lateral_mpc_lib/SConscript
+@@ -1,4 +1,4 @@
+-Import('env', 'envCython', 'arch', 'msgq_python', 'common_python', 'np_version')
++Import('env', 'envCython', 'arch', 'common_python', 'np_version')
+ 
+ gen = "c_generated_code"
+ 
+@@ -62,7 +62,7 @@ lenv.Clean(generated_files, Dir(gen))
+ generated_lat = lenv.Command(generated_files,
+                              source_list,
+                              f"cd {Dir('.').abspath} && python3 lat_mpc.py")
+-lenv.Depends(generated_lat, [msgq_python, common_python])
++lenv.Depends(generated_lat, [common_python])
+ 
+ lenv["CFLAGS"].append("-DACADOS_WITH_QPOASES")
+ lenv["CXXFLAGS"].append("-DACADOS_WITH_QPOASES")
+diff --git i/selfdrive/controls/lib/longitudinal_mpc_lib/SConscript w/selfdrive/controls/lib/longitudinal_mpc_lib/SConscript
+index 7a6c02a53..bb2441918 100644
+--- i/selfdrive/controls/lib/longitudinal_mpc_lib/SConscript
++++ w/selfdrive/controls/lib/longitudinal_mpc_lib/SConscript
+@@ -1,4 +1,4 @@
+-Import('env', 'envCython', 'arch', 'msgq_python', 'common_python', 'np_version')
++Import('env', 'envCython', 'arch', 'common_python', 'np_version')
+ 
+ gen = "c_generated_code"
+ 
+@@ -67,7 +67,7 @@ lenv.Clean(generated_files, Dir(gen))
+ generated_long = lenv.Command(generated_files,
+                               source_list,
+                               f"cd {Dir('.').abspath} && python3 long_mpc.py")
+-lenv.Depends(generated_long, [msgq_python, common_python])
++lenv.Depends(generated_long, [common_python])
+ 
+ lenv["CFLAGS"].append("-DACADOS_WITH_QPOASES")
+ lenv["CXXFLAGS"].append("-DACADOS_WITH_QPOASES")
+diff --git i/selfdrive/locationd/SConscript w/selfdrive/locationd/SConscript
+index e8eeff7e0..203e61972 100644
+--- i/selfdrive/locationd/SConscript
++++ w/selfdrive/locationd/SConscript
+@@ -1,4 +1,4 @@
+-Import('env', 'rednose')
++Import('env')
+ 
+ # build ekf models
+ rednose_gen_dir = 'models/generated'
 diff --git i/selfdrive/modeld/SConscript w/selfdrive/modeld/SConscript
-index 91f359744..ff46e5e07 100644
+index 91f359744..a05e4a8d6 100644
 --- i/selfdrive/modeld/SConscript
 +++ w/selfdrive/modeld/SConscript
+@@ -1,11 +1,11 @@
+ import os
+ import glob
+ 
+-Import('env', 'envCython', 'arch', 'cereal', 'messaging', 'common', 'visionipc')
++Import('env', 'envCython', 'arch', 'cereal', 'messaging', 'common')
+ lenv = env.Clone()
+ lenvCython = envCython.Clone()
+ 
+-libs = [cereal, messaging, visionipc, common, 'capnp', 'kj', 'pthread']
++libs = [cereal, messaging, 'visionipc', common, 'capnp', 'kj', 'pthread']
+ frameworks = []
+ 
+ common_src = [
 @@ -39,12 +39,11 @@ for model_name in ['driving_vision', 'driving_policy', 'dmonitoring_model']:
    lenv.Command(fn + "_metadata.pkl", [fn + ".onnx"] + tinygrad_files + script_files, cmd)
  
@@ -67,3 +166,90 @@ index 91f359744..ff46e5e07 100644
    )
  
  # Compile small models
+diff --git i/system/camerad/SConscript w/system/camerad/SConscript
+index e288c6d8b..0e3493e5e 100644
+--- i/system/camerad/SConscript
++++ w/system/camerad/SConscript
+@@ -1,6 +1,6 @@
+-Import('env', 'arch', 'messaging', 'common', 'visionipc')
++Import('env', 'arch', 'messaging', 'common')
+ 
+-libs = [common, 'OpenCL', messaging, visionipc]
++libs = [common, 'OpenCL', messaging, 'visionipc']
+ 
+ if arch != "Darwin":
+   camera_obj = env.Object(['cameras/camera_qcom2.cc', 'cameras/camera_common.cc', 'cameras/spectra.cc',
+diff --git i/system/loggerd/SConscript w/system/loggerd/SConscript
+index cf169f4dc..83285e3a7 100644
+--- i/system/loggerd/SConscript
++++ w/system/loggerd/SConscript
+@@ -1,6 +1,6 @@
+-Import('env', 'arch', 'messaging', 'common', 'visionipc')
++Import('env', 'arch', 'messaging', 'common')
+ 
+-libs = [common, messaging, visionipc,
++libs = [common, messaging, "visionipc",
+         'avformat', 'avcodec', 'avutil',
+         'yuv', 'OpenCL', 'pthread', 'zstd']
+ 
+diff --git i/tools/cabana/SConscript w/tools/cabana/SConscript
+index d4cfc6728..5a296dbfc 100644
+--- i/tools/cabana/SConscript
++++ w/tools/cabana/SConscript
+@@ -1,7 +1,10 @@
+ import subprocess
+ import os
++import pathlib
+ 
+-Import('env', 'arch', 'common', 'messaging', 'visionipc', 'replay_lib', 'cereal')
++import opendbc.dbc
++
++Import('env', 'arch', 'common', 'messaging', 'replay_lib', 'cereal')
+ 
+ qt_env = env.Clone()
+ qt_modules = ["Widgets", "Gui", "Core", "Network", "Concurrent", "DBus", "Xml"]
+@@ -54,7 +57,7 @@ qt_env['LIBPATH'] += ['#selfdrive/ui', ]
+ qt_env['LIBS'] = qt_libs
+ 
+ base_frameworks = qt_env['FRAMEWORKS']
+-base_libs = [common, messaging, cereal, visionipc, 'm', 'ssl', 'crypto', 'pthread'] + qt_env["LIBS"]
++base_libs = [common, messaging, cereal, 'visionipc', 'm', 'ssl', 'crypto', 'pthread'] + qt_env["LIBS"]
+ 
+ if arch == "Darwin":
+   base_frameworks.append('OpenCL')
+@@ -69,8 +72,10 @@ qt_libs = base_libs
+ 
+ cabana_env = qt_env.Clone()
+ 
+-cabana_libs = [cereal, messaging, visionipc, replay_lib, 'avutil', 'avcodec', 'avformat', 'bz2', 'zstd', 'curl', 'yuv', 'usb-1.0'] + qt_libs
+-opendbc_path = '-DOPENDBC_FILE_PATH=\'"%s"\'' % (cabana_env.Dir("../../opendbc/dbc").abspath)
++cabana_libs = [cereal, messaging, 'visionipc', replay_lib, 'avutil', 'avcodec', 'avformat', 'bz2', 'zstd', 'curl', 'yuv', 'usb-1.0'] + qt_libs
++
++
++opendbc_path = '-DOPENDBC_FILE_PATH=\'"%s"\'' % pathlib.Path(opendbc.dbc.__file__).parent.absolute()
+ cabana_env['CXXFLAGS'] += [opendbc_path]
+ 
+ # build assets
+@@ -94,4 +99,4 @@ output_json_file = 'tools/cabana/dbc/car_fingerprint_to_dbc.json'
+ generate_dbc = cabana_env.Command('#' + output_json_file,
+                                   ['dbc/generate_dbc_json.py'],
+                                   "python3 tools/cabana/dbc/generate_dbc_json.py --out " + output_json_file)
+-cabana_env.Depends(generate_dbc, ["#common", '#opendbc_repo', "#cereal", "#msgq_repo"])
++cabana_env.Depends(generate_dbc, ["#common", "#cereal", "#msgq_repo"])
+diff --git i/tools/replay/SConscript w/tools/replay/SConscript
+index 136c4119f..ac71015aa 100644
+--- i/tools/replay/SConscript
++++ w/tools/replay/SConscript
+@@ -1,10 +1,10 @@
+-Import('env', 'arch', 'common', 'messaging', 'visionipc', 'cereal')
++Import('env', 'arch', 'common', 'messaging', 'cereal')
+ 
+ replay_env = env.Clone()
+ replay_env['CCFLAGS'] += ['-Wno-deprecated-declarations']
+ 
+ base_frameworks = []
+-base_libs = [common, messaging, cereal, visionipc, 'm', 'ssl', 'crypto', 'pthread']
++base_libs = [common, messaging, cereal, 'visionipc', 'm', 'ssl', 'crypto', 'pthread']
+ 
+ if arch == "Darwin":
+   base_frameworks.append('OpenCL')

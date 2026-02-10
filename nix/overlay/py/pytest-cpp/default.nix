@@ -9,14 +9,14 @@
   setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
 
   pname = "pytest_cpp";
   version = "2.6.0";
   pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-wvSdPAOFOayEeGqU2FLk9GGcNMlZecK8acILO98FHYU=";
   };
 
@@ -36,4 +36,4 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pytest_cpp" ];
 
-}
+})

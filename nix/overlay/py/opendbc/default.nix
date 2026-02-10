@@ -1,51 +1,39 @@
 {
-  lib,
   # pkgs
   llvmPackages,
+  rsync,
   # python.pkgs
-  loadPyproject,
+  buildPyproject,
   # self
   opendbc-src,
   # resolved by buildPyproject if not supplied
   pythonInterpreter ? null,
 }:
+buildPyproject {
 
-let
-  inherit
-    (loadPyproject {
-      src = opendbc-src;
-      patches = [ ./opendbc.patch ];
-      inherit pythonInterpreter;
-      build-system = [ llvmPackages.clang ];
-    })
-    pyAttrs
-    python
-    ;
-in
-python.pkgs.buildPythonPackage (
-  pyAttrs
-  // {
+  src = opendbc-src;
+  patches = [ ./opendbc.patch ];
 
-    postPatch = "patchShebangs .";
+  inherit pythonInterpreter;
 
-    # needed for scons
-    PYTHONPATH = ".";
+  build-system = [
+    llvmPackages.clang
+    rsync
+  ];
 
-    # runs an install script using sudo so no go in the nix sandbox
-    disabledTests = [ "test_misra_mutation" ];
+  postPatch = "patchShebangs .";
 
-    # preBuild = ''
-    #   scons -j$NIX_BUILD_CORES
-    # '';
+  # scons assumes
+  PYTHONPATH = ".";
 
-    # put headers in std location
-    postInstall = ''
-      tgt=$out/include/opendbc
-      mkdir -p $tgt
-      ln -s \
-        $out/${python.sitePackages}/opendbc/safety \
-        $out/include/opendbc/safety
-    '';
+  # runs an install script using sudo
+  disabledTests = [ "test_misra_mutation" ];
 
-  }
-)
+  # install headers in std location
+  postInstall = ''
+    tgt=$out/include
+    mkdir -p $tgt
+    find opendbc -name "*.h" -exec cp --parents \{\} $tgt \;
+  '';
+
+}

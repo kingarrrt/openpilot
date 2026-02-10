@@ -27,4 +27,13 @@ buildPyproject {
     zeromq
   ];
 
+  postInstall = ''
+    # install lib
+    cp *.a $out/lib
+    # install headers
+    tgt=$out/include
+    mkdir -p $tgt
+    find msgq -name "*.h" -exec cp --parents \{\} $tgt \;
+  '';
+
 }

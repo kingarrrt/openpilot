@@ -25,23 +25,26 @@ index 957982ca..c780d485 100644
      BUILDERS={
        'Objcopy': Builder(generator=objcopy, suffix='.bin', src_suffix='.elf')
 diff --git i/pyproject.toml w/pyproject.toml
-index 3586313b..25963516 100644
+index 3586313b..5f743b62 100644
 --- i/pyproject.toml
 +++ w/pyproject.toml
-@@ -17,10 +17,9 @@ dependencies = [
+@@ -17,27 +17,37 @@ dependencies = [
  ]
  
  [project.optional-dependencies]
-+testing = ["cffi"]
- dev = [
+-dev = [
 -  "scons",
-   "pycryptodome >= 3.9.8",
--  "cffi",
+-  "pycryptodome >= 3.9.8",
++testing = [
+   "cffi",
    "flaky",
    "pytest",
    "pytest-mock",
-@@ -28,16 +27,25 @@ dev = [
+   "pytest-timeout",
    "pytest-randomly",
++]
++dev = [
++  "pycryptodome >= 3.9.8",
    "ruff",
    "mypy",
 -  "setuptools",

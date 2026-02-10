@@ -10,10 +10,12 @@
 
   inputs = {
 
-    self.submodules = true;
-
     # tracking nixpkgs-unstable, see https://wiki.nixos.org/wiki/Channel_branches
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+
+    # this is the scons cache from a previous commit,  it is updated by ci after a
+    # successful build
+    build-cache.url = "github:kingarrrt/openpilot/c483341061db97a884dd5b9f99c4b37461e2d1f5";
 
     # provides saveFromGC, used below
     cache-nix-action = {
@@ -22,7 +24,10 @@
     };
 
     # provides eachDefaultSystem, used below
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+      inputs.systems.follows = "systems";
+    };
 
     # pre-commit integration
     git-hooks = {
@@ -37,65 +42,85 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # default systems are:
+    # - aarch64-darwin
+    # - aarch64-linux
+    # - x86_64-darwin
+    # - x86_64-linux
+    systems.url = "github:nix-systems/default";
+
+    # commaai components
+    msgq-src = {
+      url = "github:commaai/msgq/20f2493855ef32339b80f0ad76b3cb82210dc474";
+      flake = false;
+    };
+
+    opendbc-src = {
+      url = "github:commaai/opendbc/e76c2cf5bb0042bc5822efa78fff0362feed7b54";
+      flake = false;
+    };
+
+    panda-src = {
+      url = "github:commaai/panda/81615ad9d53aef5583e064f340e9cdeb23d4119c";
+      flake = false;
+    };
+
+    rednose-src = {
+      url = "github:commaai/rednose/7fddc8e6d49def83c952a78673179bdc62789214";
+      flake = false;
+    };
+
+    teleoprtc-src = {
+      url = "github:commaai/teleoprtc/389815b8ca5302ce7c1504b7841d4eb61a8cd51b";
+      flake = false;
+    };
+
   };
 
   outputs =
     inputs:
-    let
-
-      # overlay flake inputs and local overrides
-      overlays = [
-        (_: _: inputs)
-        (import ./nix/overlay)
-      ];
-
-    in
     (inputs.flake-utils.lib.eachDefaultSystem (
       system:
       let
 
-        # the nixpkgs package collection,
-        pkgs = import inputs.nixpkgs { inherit overlays system; };
-        inherit (pkgs) lib;
+        # the nix packages collection
+        pkgs = import inputs.nixpkgs {
+          inherit system;
+          overlays = [ (import ./nix/overlay inputs) ];
+        };
+        inherit (pkgs) callPackage;
 
         # the openpilot package
-        #  pkgs.callPackage resolves arguments in its parent's scope (pkgs), "./." is
-        #  shorthand for "./default.nix"
-        openpilot = pkgs.callPackage ./. { };
+        openpilot = callPackage ./. { };
 
-        pre-commit = pkgs.callPackage ./nix/pre-commit.nix { inherit system; };
+        #
+        python = openpilot.passthru.pythonModule;
+
+        pre-commit = callPackage ./nix/pre-commit.nix { inherit system; };
 
       in
       {
 
         # `nix flake check`
-        checks = { inherit pre-commit; };
+        checks = {
+          inherit pre-commit;
+          # lint = lintcfg.build.check inputs.self;
+        };
 
         # `nix develop`
-        devShells.default = pkgs.callPackage ./nix/shell.nix {
+        devShells.default = callPackage ./nix/shell.nix {
           inherit openpilot pre-commit;
         };
 
-        # `nix fmt`
-        # formatter =
-        #   let
-        #     inherit (pre-commit.config) package configFile;
-        #   in
-        #   pkgs.writeShellScriptBin "pre-commit-run" ''
-        #     ${pkgs.lib.getExe package} run --all-files --config ${configFile} nixfmt
-        #   '';
-
         # `nix build` for default package, otherwise `nix build .#<name>`
         packages = {
+
           default = openpilot;
-        }
-        // lib.optionalAttrs (builtins.getEnv "IN_NIX_SHELL" != "") {
 
           # for dev:
-          #  - nix build .#pkgs.acados
-          #  - nix build .#pyPkgs.acados-template
-          inherit pkgs;
-          pyPkgs = openpilot.passthru.pythonModule.pkgs;
+          #  - nix build --impure .#pkgs.acados
+          #  - nix build --impure .#python.pkgs.acados-template
+          inherit pkgs python;
 
           # `nix profile add .#saveFromGC`
           #
@@ -108,12 +133,10 @@
           saveFromGC =
             (import "${inputs.cache-nix-action}/saveFromGC.nix" { inherit pkgs inputs; })
             .package;
+
         };
 
       }
-    ))
-    // {
-      overlays.default = inputs.nixpkgs.lib.composeManyExtensions overlays;
-    };
+    ));
 
 }
