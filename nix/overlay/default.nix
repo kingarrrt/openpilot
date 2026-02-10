@@ -11,18 +11,6 @@ let
       )
     );
 
-  # mkLocalPkgs =
-  #   self: path:
-  #   builtins.mapAttrs (name: _type: self.callPackage "${path}/${name}" { }) (
-  #     lib.filterAttrs (
-  #       name: type:
-  #       type == "directory"
-  #       && name != "py"
-  #       # Don't scan the Python extensions folder
-  #       && name != "lib.nix" # Don't try to callPackage your library file
-  #     ) (builtins.readDir path)
-  #   );
-
   localPkgs = mkLocalPkgs self ./.;
 
 in
@@ -163,8 +151,5 @@ localPkgs
       inherit (self.loadPyproject args) pyAttrs python;
     in
     python.pkgs.buildPythonPackage pyAttrs;
-
-  # aliases
-  lefthook-go = super.lefthook;
 
 }
