@@ -30,17 +30,19 @@
       },
       "locked": {
         "lastModified": 1770716891,
-        "narHash": "sha256-kQwPzSRaH/NKW7bOfYr45fN6164HnewfG/J7BVRk83A=",
-        "owner": "kingarrrt",
-        "repo": "openpilot",
+        "lfs": true,
+        "narHash": "sha256-eoFRBPm8bb5VunDkZ+UX1w1yxtbtE5R5y0eIjxXvBqo=",
+        "ref": "refs/heads/master",
         "rev": "c3a2287899aff540a077bb3dec82c8540f58e131",
-        "type": "github"
+        "revCount": 16470,
+        "type": "git",
+        "url": "https://github.com/kingarrrt/openpilot.git"
       },
       "original": {
-        "owner": "kingarrrt",
-        "repo": "openpilot",
+        "lfs": true,
         "rev": "c3a2287899aff540a077bb3dec82c8540f58e131",
-        "type": "github"
+        "type": "git",
+        "url": "https://github.com/kingarrrt/openpilot.git"
       }
     },
     "cache-nix-action": {

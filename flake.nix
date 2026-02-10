@@ -71,7 +71,7 @@
       flake = false;
     };
 
-    cache.url = "github:kingarrrt/openpilot/c3a2287899aff540a077bb3dec82c8540f58e131?lfs=1";
+    cache.url = "git+https://github.com/kingarrrt/openpilot.git?rev=c3a2287899aff540a077bb3dec82c8540f58e131&lfs=1";
 
   };
 
