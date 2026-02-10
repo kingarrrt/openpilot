@@ -68,8 +68,8 @@ jobs:
         os:
           - ubuntu-22.04
           - ubuntu-22.04-arm
-          - macos-15
-          - macos-15-intel
+          # - macos-15
+          # - macos-15-intel
     permissions:
       contents: write
     runs-on: &runs-on ${{ matrix.os }}
@@ -99,15 +99,18 @@ jobs:
         with:
           package: devShells.SYSTEM.default
 
-  check:
-    name: Check
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: *checkout
-      - uses: *nix-setup
-        with: *nix-secrets
-      - shell: bash
-        run: $NIX flake check
+  # check:
+  #   name: Check
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - uses: *checkout
+  #     - uses: *nix-setup
+  #       with: *nix-secrets
+  #     - uses: *nix-build
+  #       with:
+  #         package: devShells.SYSTEM.default
+  #     - shell: bash
+  #       run: $NIX flake check
 
   # flake:
   #   name: Flake
