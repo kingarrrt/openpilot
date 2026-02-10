@@ -1,0 +1,71 @@
+diff --git i/SConscript w/SConscript
+index 957982ca..c780d485 100644
+--- i/SConscript
++++ w/SConscript
+@@ -24,11 +24,7 @@ def objcopy(source, target, env, for_signature):
+     return '$OBJCOPY -O binary %s %s' % (source[0], target[0])
+ 
+ def get_version(builder, build_type):
+-  try:
+-    git = subprocess.check_output(["git", "rev-parse", "--short=8", "HEAD"], encoding='utf8').strip()
+-  except subprocess.CalledProcessError:
+-    git = "unknown"
+-  return f"{builder}-{git}-{build_type}"
++  return f"{builder}-{os.environ["GIT_REV"]}-{build_type}"
+ 
+ def get_key_header(name):
+   from Crypto.PublicKey import RSA
+@@ -90,7 +86,7 @@ def build_project(project_name, project, main, extra_flags):
+     CFLAGS=flags,
+     ASFLAGS=flags,
+     LINKFLAGS=flags,
+-    CPPPATH=[Dir("./"), "./board/stm32h7/inc", opendbc.INCLUDE_PATH],
++    CPPPATH=[Dir("./"), "./board/stm32h7/inc", *os.environ["CPPPATH"].split(":")],
+     ASCOM="$AS $ASFLAGS -o $TARGET -c $SOURCES",
+     BUILDERS={
+       'Objcopy': Builder(generator=objcopy, suffix='.bin', src_suffix='.elf')
+diff --git i/pyproject.toml w/pyproject.toml
+index 3586313b..25963516 100644
+--- i/pyproject.toml
++++ w/pyproject.toml
+@@ -17,10 +17,9 @@ dependencies = [
+ ]
+ 
+ [project.optional-dependencies]
++testing = ["cffi"]
+ dev = [
+-  "scons",
+   "pycryptodome >= 3.9.8",
+-  "cffi",
+   "flaky",
+   "pytest",
+   "pytest-mock",
+@@ -28,16 +27,25 @@ dev = [
+   "pytest-randomly",
+   "ruff",
+   "mypy",
+-  "setuptools",
+   "spidev; platform_system == 'Linux'",
+ ]
+ 
+ [build-system]
+-requires = ["setuptools>=61", "wheel"]
++requires = ["setuptools>=61", "wheel", "scons"]
+ build-backend = "setuptools.build_meta"
+ 
+ [tool.setuptools]
+-packages = ["panda"]
++packages = [
++  "panda",
++  "panda.board",
++  "panda.board.body",
++  "panda.board.jungle",
++  "panda.python",
++  "panda.tests.libpanda",
++]
++
++[tool.setuptools.package-data]
++"panda.tests.libpanda" = ["libpanda.so"]
+ 
+ [tool.setuptools.package-dir]
+ panda = "."
