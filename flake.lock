@@ -211,7 +211,8 @@
         "pyproject-nix": "pyproject-nix",
         "rednose-src": "rednose-src",
         "systems": "systems",
-        "teleoprtc-src": "teleoprtc-src"
+        "teleoprtc-src": "teleoprtc-src",
+        "tinygrad-src": "tinygrad-src"
       }
     },
     "systems": {
@@ -243,6 +244,23 @@
         "owner": "commaai",
         "repo": "teleoprtc",
         "rev": "389815b8ca5302ce7c1504b7841d4eb61a8cd51b",
+        "type": "github"
+      }
+    },
+    "tinygrad-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769432631,
+        "narHash": "sha256-CHZau1aArEOk5bdMIU0H6yM6B2JsucIiom5n8sdUyF8=",
+        "owner": "tinygrad",
+        "repo": "tinygrad",
+        "rev": "774a454bb5e6d0fe3756a8add9302c0a3d592bd9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tinygrad",
+        "repo": "tinygrad",
+        "rev": "774a454bb5e6d0fe3756a8add9302c0a3d592bd9",
         "type": "github"
       }
     }

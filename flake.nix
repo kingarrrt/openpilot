@@ -71,6 +71,11 @@
       flake = false;
     };
 
+    tinygrad-src = {
+      url = "github:tinygrad/tinygrad/774a454bb5e6d0fe3756a8add9302c0a3d592bd9";
+      flake = false;
+    };
+
   };
 
   outputs =
