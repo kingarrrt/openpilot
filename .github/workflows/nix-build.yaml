@@ -1,5 +1,5 @@
----
 name: Nix Build
+
 on:
   push:
     branches:
@@ -14,27 +14,30 @@ on:
         default: '1'
         required: true
         type: string
+
 # TOGO: for dev
 # concurrency:
 #   group: tests-ci-run-${{ inputs.run_number }}-${{ github.event_name == 'push' && github.ref == 'refs/heads/master'
 #     && github.run_id || github.head_ref || github.ref }}-${{ github.workflow }}-${{ github.event_name
 #     }}
 #   cancel-in-progress: true
+
 env:
   AZURE_TOKEN: ${{ secrets.AZURE_COMMADATACI_OPENPILOTCI_TOKEN }}
   PACKAGE: default
   NIX: nix --print-build-logs --show-trace
-  NIX_CONFIG: |
-    builders =
-    eval-store = auto
-    experimental-features = nix-command flakes
-    max-jobs = 2
-    store = ssh-ng://eu.nixbuild.net
+  # NIX_CONFIG: |
+  #   builders =
+  #   eval-store = auto
+  #   experimental-features = nix-command flakes
+  #   max-jobs = 2
+  #   store = ssh-ng://eu.nixbuild.net
   # can't reference $NIX or ${{ env.nix }}, so below must match NIX above
   NIX_DEVELOP_COMMAND: nix --print-build-logs --show-trace develop path:. --command
   PYTEST: pytest --continue-on-collection-errors --durations=0 -n logical
   PYTHONWARNINGS: error
   SHELLOPTS: xtrace
+
 # XXX: github support yaml anchors, but do NOT support merge keys (<<:) so we have to
 # break DRY - all jobs (apart from static_analysis which doesn't need submodules and
 # uses a separate build cache) MUST match build_release
@@ -60,6 +63,7 @@ jobs:
   #       ${{ inputs.nix_config }}
   #     nix_on_tmpfs: true
   #     nix_version: 2.31.2
+
   package:
     name: Package
     # needs:
@@ -88,6 +92,7 @@ jobs:
         uses: *nix-build
         with:
           flags: --rebuild
+
   shell:
     name: Shell
     strategy: *strategy
@@ -99,6 +104,7 @@ jobs:
       - uses: *nix-build
         with:
           package: devShells.SYSTEM.default
+
   check:
     name: Check
     runs-on: ubuntu-22.04
@@ -108,6 +114,7 @@ jobs:
         with: *nix-secrets
       - shell: bash
         run: $NIX flake check -v path:.
+
   flake:
     name: Flake
     needs: [check, package]
