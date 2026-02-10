@@ -86,7 +86,7 @@
           inherit system;
           overlays = [ (import ./nix/overlay inputs) ];
         };
-        inherit (pkgs) callPackage;
+        inherit (pkgs) lib callPackage;
 
         # the openpilot package
         openpilot = callPackage ./. {
@@ -132,8 +132,10 @@
           # https://nix.dev/manual/nix/2.31/package-management/garbage-collector-roots
           # https://github.com/nix-community/cache-nix-action#savefromgc-example
           saveFromGC =
-            (import "${inputs.cache-nix-action}/saveFromGC.nix" { inherit pkgs inputs; })
-            .package;
+            (import "${inputs.cache-nix-action}/saveFromGC.nix" {
+              inherit pkgs;
+              inputs = lib.filterAttrs (name: _value: name != "cache") inputs;
+            }).package;
 
         };
 
