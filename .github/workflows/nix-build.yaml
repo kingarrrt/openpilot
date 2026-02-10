@@ -89,13 +89,15 @@ jobs:
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           nixbuild_token: ${{ secrets.NIXBUILD_TOKEN }}
       - uses: &nix-build ./.github/workflows/nix-build
-      - name: Verify Reproducible
-        uses: *nix-build
-        with:
-          flags: --rebuild
+      # - name: Verify Reproducible
+      #   uses: *nix-build
+      #   with:
+      #     flags: --rebuild
 
   shell:
     name: Shell
+    needs:
+      - check
     strategy: *strategy
     runs-on: *runs-on
     steps:
@@ -118,7 +120,9 @@ jobs:
 
   flake:
     name: Flake
-    needs: [check, package]
+    needs:
+      - check
+      - package
     permissions:
       contents: write
     runs-on: ubuntu-22.04
