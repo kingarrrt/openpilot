@@ -41,5 +41,5 @@ $(cat $MMD)
 EOF
 
 } || {
-  echo "::warning ::dependency graph failed"
+  echo "::warning::dependency graph failed"
 }

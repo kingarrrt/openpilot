@@ -22,16 +22,38 @@ runs:
         nix_version: 2.31.2
         nix_conf: |
           accept-flake-config = true
-          download-buffer-size = 268435456
+          # download-buffer-size = 268435456
           http-connections = 128
           keep-derivations = true
           keep-outputs = true
           max-substitution-jobs = 64
+          sandbox = false
           ${{ inputs.nix_config }}
         nix_on_tmpfs: true
 
     - shell: bash
       run: |
+
+        remote=
+        if [[ ${{ github.repository}} != commaai/openpilot ]]; then
+          remote=upstream
+          git remote add $remote https://github.com/commaai/openpilot
+        fi
+        git lfs pull $remote
+
+        # this is maybe very important
+        git add .
+
+        model=selfdrive/modeld/models/driving_policy.onnx
+        [[ -f $model ]] || {
+          echo "::error::model $model not found"
+          exit 1
+        }
+        if head -1 $model | grep -q git-lfs; then
+          echo "::error::model $model is an lfs pointer"
+          exit 1
+        fi
+
         # set env
         SYSTEM=$(nix eval --impure --raw --expr builtins.currentSystem)
         cat <<EOF >> $GITHUB_ENV
@@ -40,16 +62,6 @@ runs:
         EOF
 
         python -c "import sys; print(sys.platform)"
-
-        model=selfdrive/modeld/models/driving_policy.onnx
-        [[ -f $model ]] || {
-          echo "model $model not found"
-          exit 1
-        }
-        if head -1 $model | grep -q git-lfs; then
-          echo "model $model is an lfs pointer"
-          exit 1
-        fi
 
     # - uses: cachix/install-nix-action@v31
     #   with:
