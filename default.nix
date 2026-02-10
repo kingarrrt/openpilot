@@ -237,10 +237,7 @@ python.pkgs.buildPythonPackage (
     env = {
       ACADOS_SOURCE_DIR = acados;
       ACADOS_TEMPLATE_DIR =
-        python.pkgs.localPkgs.acados-template
-        + "/"
-        + python.sitePackages
-        + "/acados_template";
+        python.pkgs.acados-template + "/" + python.sitePackages + "/acados_template";
       GLIBC_TUNABLES = "glibc.rtld.execstack=2";
     }
     // (
@@ -338,7 +335,14 @@ python.pkgs.buildPythonPackage (
       }
 
       # keep the scons cache
-      cp -ar ''${SCONS_CACHE:-${defaultSconsCache}} $sconsCache
+      cache=''${SCONS_CACHE:-${defaultSconsCache}}
+      if [[ -d $cache ]]; then
+        echo "*** copying cache to $sconsCache"
+        cp -ar $cache $sconsCache
+      else
+        echo "*** not copying cache"
+        echo disabled > $sconsCache
+      fi
 
       runHook postInstall
     '';

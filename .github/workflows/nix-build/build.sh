@@ -8,7 +8,6 @@ package=$1
 flags=${2:-}
 
 $NIX build \
-  --builders "" \
   --eval-store auto \
   --store ssh-ng://eu.nixbuild.net \
   --out-link $package $flags \

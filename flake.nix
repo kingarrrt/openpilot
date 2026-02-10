@@ -13,10 +13,6 @@
     # tracking nixpkgs-unstable, see https://wiki.nixos.org/wiki/Channel_branches
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    # this is the scons cache from a previous commit,  it is updated by ci after a
-    # successful build
-    build-cache.url = "github:kingarrrt/openpilot/8baf96de1c2e08c7efacf4a2c8045a9bbebea1c2";
-
     # provides saveFromGC, used below
     cache-nix-action = {
       url = "github:nix-community/cache-nix-action";
@@ -75,6 +71,11 @@
       flake = false;
     };
 
+    build-cache-x86_64-linux = {
+      url = "path:/nix/store/rqbgzakl5ld1d9z95p47mjcsfwffia9m-python3.12-openpilot-0.1.0-sconsCache";
+      flake = false;
+    };
+
   };
 
   outputs =
@@ -89,8 +90,6 @@
           overlays = [ (import ./nix/overlay inputs) ];
         };
         inherit (pkgs) callPackage;
-
-        # inherit (inputs.build-cache.packages.${system}.default) sconsCache;
 
         # the openpilot package
         openpilot = callPackage ./. { };
@@ -115,7 +114,12 @@
         # `nix build` for default package, otherwise `nix build .#<name>`
         packages = {
 
+          inherit openpilot;
           default = openpilot;
+
+          openpilot-dev = openpilot.override {
+            sconsCache = inputs."build-cache-${system}" or null;
+          };
 
           # for dev:
           #  - nix build --impure .#pkgs.acados
