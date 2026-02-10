@@ -75,6 +75,8 @@ jobs:
     runs-on: &runs-on ${{ matrix.os }}
     steps:
       - uses: &checkout actions/checkout@v6
+        with:
+          lfs: true
       - uses: &lfs-pull ./.github/workflows/git-lfs-pull
       - uses: &nix-setup ./.github/workflows/nix-setup
         with: &nix-secrets

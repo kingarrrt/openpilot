@@ -71,7 +71,7 @@
       flake = false;
     };
 
-    # cache.url = "github:kingarrrt/openpilot/c3a2287899aff540a077bb3dec82c8540f58e131?lfs=1";
+    cache.url = "github:kingarrrt/openpilot/c3a2287899aff540a077bb3dec82c8540f58e131?lfs=1";
 
   };
 
@@ -90,7 +90,7 @@
 
         # the openpilot package
         openpilot = callPackage ./. {
-          # inherit (inputs.cache.packages.${system}.default) sconsCache;
+          inherit (inputs.cache.packages.${system}.default) sconsCache;
         };
 
         # pre-commit config
