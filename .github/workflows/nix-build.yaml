@@ -116,7 +116,7 @@ jobs:
       - uses: *nix-setup
         with: *nix-secrets
       - shell: bash
-        run: $NIX flake check -v path:.
+        run: $NIX flake check path:.
 
   flake:
     name: Flake
@@ -131,7 +131,7 @@ jobs:
       - shell: bash
         run: |
           sed -i 's|\(build-cache\.url\).*| \
-            "\1 = github:${{ github.repository }}/${{ github.sha }}";|' \
+            \1 = "github:${{ github.repository }}/${{ github.sha }}";|' \
             flake.nix
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:

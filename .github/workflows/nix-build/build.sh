@@ -22,7 +22,8 @@ echo $GITHUB_WORKSPACE/$package/bin >>$GITHUB_PATH
   # mermaid
   MMD=$stem.mmd
   echo MMD=$MMD >>$GITHUB_ENV
-  $NIX_DEVELOP_COMMAND scripts/nix2mermaid.py $package >$MMD
+  # $NIX_DEVELOP_COMMAND scripts/nix2mermaid.py $package >$MMD
+  scripts/nix2mermaid.py $package >$MMD
 
   # svg
   SVG=$stem.svg

@@ -427,10 +427,6 @@ python.pkgs.buildPythonPackage (
         '';
       };
 
-      # nix/flakes don't play nice with lfs - it may end up putting a pointer in the
-      # store - builtin.path ignores git so the files are copied verbatim
-      ci = drv.overrideAttrs { src = builtins.path { path = srcFilter ./.; }; };
-
       # XXX: test suite doesn't work in the sandbox - this exposes a pytest wrapper so
       # tests can be run outside it
       #  * system/updated/tests/test_base.py::TestBaseUpdate::setup_method uses sudo
