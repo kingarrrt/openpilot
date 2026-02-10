@@ -36,7 +36,7 @@ env:
   NIX_DEVELOP_COMMAND: nix --print-build-logs --show-trace develop path:. --command
   PYTEST: pytest --continue-on-collection-errors --durations=0 -n logical
   PYTHONWARNINGS: error
-  SHELLOPTS: xtrace
+  # SHELLOPTS: xtrace
 
 # XXX: github support yaml anchors, but do NOT support merge keys (<<:) so we have to
 # break DRY - all jobs (apart from static_analysis which doesn't need submodules and

@@ -93,9 +93,7 @@
         # the openpilot package
         openpilot = callPackage ./. { };
 
-        #
-        python = openpilot.passthru.pythonModule;
-
+        # pre-commit config
         pre-commit = callPackage ./nix/pre-commit.nix { inherit system; };
 
       in
@@ -120,7 +118,8 @@
           # for dev:
           #  - nix build --impure .#pkgs.acados
           #  - nix build --impure .#python.pkgs.acados-template
-          inherit pkgs python;
+          # inherit pkgs;
+          # python = openpilot.passthru.pythonModule;
 
           # `nix profile add .#saveFromGC`
           #

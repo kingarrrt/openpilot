@@ -1,6 +1,6 @@
----
 name: nix-setup
 description: Nix Setup
+
 inputs:
   cachix_token:
     description: Cachix auth token
@@ -10,6 +10,7 @@ inputs:
     required: true
   nix_config:
     description: Appended to /etc/nix/nix.conf
+
 runs:
   using: composite
   steps:
