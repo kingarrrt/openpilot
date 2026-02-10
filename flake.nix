@@ -71,8 +71,6 @@
       flake = false;
     };
 
-    cache.url = "git+https://github.com/kingarrrt/openpilot.git?rev=c3a2287899aff540a077bb3dec82c8540f58e131&lfs=1";
-
   };
 
   outputs =
@@ -89,9 +87,7 @@
         inherit (pkgs) lib callPackage;
 
         # the openpilot package
-        openpilot = callPackage ./. {
-          inherit (inputs.cache.packages.${system}.default) sconsCache;
-        };
+        openpilot = callPackage ./. { };
 
         # pre-commit config
         pre-commit = callPackage ./nix/pre-commit.nix { inherit system; };
@@ -115,13 +111,11 @@
 
           default = openpilot;
 
-          release = openpilot.override { sconsCache = null; };
-
           # for dev:
           #  - nix build --impure .#pkgs.acados
           #  - nix build --impure .#python.pkgs.acados-template
           # inherit pkgs;
-          # python = openpilot.passthru.pythonModule;
+          python = openpilot.passthru.pythonModule;
 
           # `nix profile add .#saveFromGC`
           #

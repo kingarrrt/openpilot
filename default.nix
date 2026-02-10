@@ -9,12 +9,11 @@
   capnproto,
   catch2,
   curl,
+  eigen,
   ffmpeg,
   glibc,
-  gcc-arm-embedded,
   gitMinimal,
   hpipm,
-  libGL,
   libjpeg,
   libsForQt5,
   libusb1,
@@ -23,77 +22,21 @@
   llvmPackages,
   makeWrapper,
   ncurses,
+  ocl-icd,
+  opencl-headers,
   qpoases,
   raylib-local,
   xvfb-run,
   zeromq,
   zstd,
-  # resolved in ./flake.nix
-  # whether to start the build with a pre-built scons cache
-  sconsCache ? null,
-  nixosTest,
-  nixVersions,
+  # python.pkgs
   loadPyproject,
   rednose-src,
   opendbc-src,
-  opencl-headers,
-  eigen,
-  msgq-src,
-  ocl-icd,
 }:
 let
 
-  defaultSconsCache = "/tmp/scons_cache";
-
-  inherit
-    (loadPyproject {
-      src = srcFilter ./.;
-      # src = ./.;
-      # pyproject.toml is needed at eval time so must be patched early
-      patch = ./nix/patches/openpilot.patch;
-
-      build-system = [
-        acados # selfdrive/controls
-        blasfeo # ./selfdrive/controls
-        bzip2 # ./selfdrive/pandad
-        capnproto # ./cereal
-        catch2 # self
-        curl # ./system/loggerd
-        eigen # rednose transitive
-        ffmpeg # ./tools/replay
-        hpipm # ./selfdrive/controls
-        libjpeg # ./system/loggerd
-        # TODO: split this out into its own build
-        libsForQt5.qtbase # ./tools/cabana
-        libsForQt5.qt5.qtcharts # ./tools/cabana
-        libsForQt5.qt5.qtserialbus # ./tools/cabana
-        libusb1 # ./selfdrive/panda
-        libyuv-local # ./system/loggerd ./tools/replay
-        llvmPackages.clang # everything
-        ncurses # ./tools/replay
-        ocl-icd # ./selfdrive/modeld
-        opencl-headers # ./common
-        qpoases # ./selfdrive/controls
-        raylib-local # ./selfdrive/ui
-        zeromq # ./common
-        zstd # ./system/loggerd
-        python.pkgs.build # installPhase
-        python.pkgs.msgq
-        python.pkgs.opendbc
-        python.pkgs.panda
-        python.pkgs.rednose
-      ]
-      ++ lib.optionals stdenv.hostPlatform.isLinux [
-        gcc-arm-embedded # ./panda
-        libGL # ./selfdrive/ui
-      ];
-
-    })
-    pyAttrs
-    python
-    ;
-
-  # python packages installed to ssitePackages
+  # python packages installed to sitePackages
   packages = [
     "cereal"
     "openpilot"
@@ -145,6 +88,7 @@ let
                     "Jenkinsfile"
                     "docs"
                     "mkdocs.yml"
+                    "nix"
                     "openpilot/third_party"
                     "release"
                     "scripts"
@@ -168,6 +112,54 @@ let
           # re-include acados layout
           (./third_party/acados/acados_template/acados_layout.json);
     };
+  inherit
+    (loadPyproject {
+
+      src = srcFilter ./.;
+
+      # pyproject.toml is needed at eval time so must be patched early
+      patch = ./nix/patches/openpilot.patch;
+
+      build-system = [
+        acados # selfdrive/controls
+        blasfeo # ./selfdrive/controls
+        bzip2 # ./selfdrive/pandad
+        capnproto # ./cereal
+        catch2 # self
+        curl # ./system/loggerd
+        eigen # rednose transitive
+        ffmpeg # ./tools/replay
+        hpipm # ./selfdrive/controls
+        libjpeg # ./system/loggerd
+        # TODO: split this out into its own build
+        libsForQt5.qtbase # ./tools/cabana
+        libsForQt5.qt5.qtcharts # ./tools/cabana
+        libsForQt5.qt5.qtserialbus # ./tools/cabana
+        libusb1 # ./selfdrive/panda
+        libyuv-local # ./system/loggerd ./tools/replay
+        llvmPackages.clang # everything
+        ncurses # ./tools/replay
+        ocl-icd # ./selfdrive/modeld
+        opencl-headers # ./common
+        qpoases # ./selfdrive/controls
+        raylib-local # ./selfdrive/ui
+        zeromq # ./common
+        zstd # ./system/loggerd
+      ]
+      ++ (with python.pkgs; [
+        build # installPhase
+        msgq
+        opendbc
+        panda
+        rednose
+      ]);
+
+      nativeCheckInputs = [ gitMinimal ];
+
+    })
+    pyAttrs
+    python
+    ;
 
 in
 
@@ -175,11 +167,6 @@ in
 python.pkgs.buildPythonPackage (
   finalAttrs:
   (lib.deepMergePythonAttrs pyAttrs {
-
-    outputs = [
-      "out"
-      "sconsCache"
-    ];
 
     # from qtbase setupHook, not necessary
     dontPatchMkspecs = true;
@@ -189,9 +176,6 @@ python.pkgs.buildPythonPackage (
 
     # as it says
     enableParallelBuilding = true;
-
-    # filter source
-    # src = srcFilter pyAttrs.src;
 
     prePatch = ''
       # verify lfs checkout
@@ -206,10 +190,10 @@ python.pkgs.buildPythonPackage (
       fi
 
       # patchShebangs is noisy
-      # eval "_$(declare -f patchShebangs)"
-      # patchShebangs() {
-      #   _patchShebangs "$@" > /dev/null
-      # }
+      eval "_$(declare -f patchShebangs)"
+      patchShebangs() {
+        _patchShebangs "$@" > /dev/null
+      }
 
       # /usr/bin/env is not available in the nix sandbox
       patchShebangs selfdrive/locationd/models/*_kf.py
@@ -224,12 +208,15 @@ python.pkgs.buildPythonPackage (
     ];
 
     postPatch = ''
-      # cp ${rednose-src}/site_scons/site_tools/rednose_filter.py site_scons/site_tools
+      # link the rednose repo for its site_scons dir
       ln -sf ${rednose-src} rednose_repo
-      ln -sf ${msgq-src} msgq_repo
+      # remove link to module so we use the python path to import
+      ln -sf ${python.pkgs.rednose}/${python.sitePackages}/rednose
+      # wanted by model compile
       ln -sf ${python.pkgs.tinygrad.src} tinygrad_repo
-      ln -sf ${python.pkgs.msgq}/${python.sitePackages}/msgq
+      rm tinygrad
       cp --remove-destination ${opendbc-src}/opendbc/car/car.capnp cereal
+      ls -l
     '';
 
     env = {
@@ -267,13 +254,6 @@ python.pkgs.buildPythonPackage (
     sconsFlags = [ "--jobs=$NIX_BUILD_CORES" ];
 
     buildPhase = ''
-
-      # setup scons cache
-      ${lib.optionalString (sconsCache != null && !finalAttrs ? SCONS_CACHE) ''
-        echo "*** using scons cache ${sconsCache}"
-        cp -ar ${sconsCache} ${defaultSconsCache}
-        chmod -R u+w ${defaultSconsCache}
-      ''}
 
       # tinygrad wants home to write a cache
       export HOME=$(mktemp -d)
@@ -332,39 +312,33 @@ python.pkgs.buildPythonPackage (
           find ${sitePackages} -name \*.py | xargs python -m py_compile
       }
 
-      # keep the scons cache
-      cache=''${SCONS_CACHE:-${defaultSconsCache}}
-      if [[ -d $cache ]]; then
-        echo "*** copying cache to $sconsCache"
-        cp -ar $cache $sconsCache
-      else
-        echo "*** not copying cache"
-        echo disabled > $sconsCache
-      fi
-
       runHook postInstall
     '';
 
-    doCheck = false;
+    # doCheck = false;
 
     pytestFlags = [
       "-v"
-      "--durations=0"
+      "--timeout=30"
     ]
     ++ (map (test: "--deselect=${test}") [
-      "selfdrive/locationd/test/test_paramsd.py::TestParamsd::test_read_saved_params"
-      "selfdrive/locationd/test/test_paramsd.py::TestParamsd::test_read_saved_old_format"
+      # timeout
+      "selfdrive/car/tests/test_docs.py::TestCarDocs::test_docs_diff"
+      "selfdrive/car/tests/test_docs.py::TestCarDocs::test_generator"
+      "selfdrive/controls/tests/test_leads.py::TestLeads::test_radar_fault"
       "selfdrive/locationd/test/test_lagd.py::TestLagd::test_read_saved_params"
+      "selfdrive/locationd/test/test_paramsd.py::TestParamsd::test_read_saved_old_format"
+      "selfdrive/locationd/test/test_paramsd.py::TestParamsd::test_read_saved_params"
+      "system/manager/test/test_manager.py::TestManager::test_duplicate_procs"
       "system/manager/test/test_manager.py::TestManager::test_manager_prepare"
       "system/manager/test/test_manager.py::TestManager::test_set_params_with_default_value"
-      "system/manager/test/test_manager.py::TestManager::test_duplicate_procs"
+      "selfdrive/ui/tests/test_raylib_ui.py::test_raylib_ui"
     ]);
 
     disabledTestPaths = [
       "cereal/messaging/tests/test_messaging.py"
       "cereal/messaging/tests/test_pub_sub_master.py"
       "cereal/messaging/tests/test_services.py"
-      "system/athena/tests/test_athenad.py"
       "selfdrive/car/tests/test_car_interfaces.py"
       "selfdrive/car/tests/test_cruise_speed.py"
       "selfdrive/car/tests/test_models.py"
@@ -376,6 +350,7 @@ python.pkgs.buildPythonPackage (
       "selfdrive/test/process_replay/test_fuzzy.py"
       "selfdrive/test/test_onroad.py"
       "selfdrive/ui/tests/test_translations.py"
+      "system/athena/tests/test_athenad.py"
       "system/hardware/tici/tests/test_power_draw.py"
       "system/loggerd/tests/test_deleter.py"
       "system/loggerd/tests/test_encoder.py"
@@ -390,54 +365,6 @@ python.pkgs.buildPythonPackage (
     pythonImportsCheck = packages;
 
     passthru = {
-
-      # openpilot-test.nix
-
-      t = nixosTest {
-        name = "openpilot-pytest";
-
-        nodes.machine = _: {
-
-          networking = {
-            firewall.enable = false;
-            nameservers = [
-              "1.1.1.1"
-              "8.8.8.8"
-            ];
-          };
-
-          virtualization = {
-            memorySize = 1024 * 8;
-            diskSize = 1024 * 5;
-            # cores = 4;
-            useNixStoreImage = true;
-          };
-
-          environment.systemPackages = [
-            finalAttrs.finalPackage
-            cacert
-            ffmpeg
-            gitMinimal
-            llvmPackages.clang
-            nixVersions.latest
-          ];
-
-        };
-
-        testScript = ''
-          start_all()
-
-          machine.wait_for_unit("multi-user.target")
-          machine.wait_for_unit("network.target")
-
-          machine.succeed("ping -c 1 1.1.1.1")
-
-          machine.succeed("cp -ar ${finalAttrs.finalPackage} ${finalAttrs.pname}")
-          machine.succeed("chmod -R u+w ${finalAttrs.pname}")
-
-          machine.succeed("cd ${finalAttrs.pname} && pytest -v --tb=short")
-        '';
-      };
 
       # XXX: test suite doesn't work in the sandbox - this exposes a pytest wrapper so
       # tests can be run outside it

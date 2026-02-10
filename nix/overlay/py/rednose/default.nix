@@ -26,4 +26,11 @@ buildPyproject {
   # scons assumes
   PYTHONPATH = ".";
 
+  # install headers
+  postInstall = ''
+    tgt=$out/include
+    mkdir -p $tgt
+    find rednose -name "*.h" -exec cp --parents \{\} $tgt \;
+  '';
+
 }
