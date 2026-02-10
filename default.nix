@@ -50,7 +50,7 @@ let
       src = srcFilter ./.;
       # src = ./.;
       # pyproject.toml is needed at eval time so must be patched early
-      patches = [ ./nix/patches/pyproject.patch ];
+      patch = ./nix/patches/openpilot.patch;
 
       build-system = [
         acados # selfdrive/controls

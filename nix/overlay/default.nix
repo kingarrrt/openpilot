@@ -39,23 +39,25 @@ localPkgs
   loadPyproject =
     {
       src,
-      patches ? null,
+      patch ? null,
       pythonInterpreter ? null,
       ...
     }@attrs:
 
     let
 
+      patchedSrc =
+        if (patch != null) then
+          self.applyPatches {
+            name = builtins.baseNameOf patch;
+            inherit src;
+            patches = [ patch ];
+          }
+        else
+          src;
+
       project = inputs.pyproject-nix.lib.project.loadPyproject {
-        projectRoot =
-          if (patches != null) then
-            self.applyPatches {
-              # has to have a name, doesn't matter what it is
-              name = "patched";
-              inherit patches src;
-            }
-          else
-            src;
+        projectRoot = patchedSrc;
       };
 
       # if not supplied with a python3 use the best available python within the
@@ -104,6 +106,9 @@ localPkgs
               "pythonInterpreter"
               "patches"
             ])
+            # if src was patched then add it as a dependency so its not garbage
+            # collected
+            (lib.optionalAttrs (src != patchedSrc) { build-system = [ patchedSrc ]; })
           ]
         );
 

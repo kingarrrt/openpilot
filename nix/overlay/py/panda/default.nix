@@ -13,7 +13,7 @@
 buildPyproject {
 
   src = panda-src;
-  patches = [ ./panda.patch ];
+  patch = ./panda.patch;
 
   inherit pythonInterpreter;
 

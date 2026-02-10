@@ -9,7 +9,7 @@
 buildPyproject {
 
   src = teleoprtc-src;
-  patches = [ ./teleoprtc.patch ];
+  patch = ./teleoprtc.patch;
 
   inherit pythonInterpreter;
 

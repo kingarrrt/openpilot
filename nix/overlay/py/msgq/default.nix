@@ -16,7 +16,7 @@
 buildPyproject {
 
   src = msgq-src;
-  patches = [ ./msgq.patch ];
+  patch = ./msgq.patch;
   inherit pythonInterpreter;
 
   build-system = [

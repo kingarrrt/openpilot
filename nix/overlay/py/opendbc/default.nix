@@ -12,7 +12,7 @@
 buildPyproject {
 
   src = opendbc-src;
-  patches = [ ./opendbc.patch ];
+  patch = ./opendbc.patch;
 
   inherit pythonInterpreter;
 

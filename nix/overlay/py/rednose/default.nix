@@ -12,7 +12,7 @@
 buildPyproject {
 
   src = rednose-src;
-  patches = [ ./rednose.patch ];
+  patch = ./rednose.patch;
 
   inherit pythonInterpreter;
 
