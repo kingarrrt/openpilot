@@ -19,6 +19,9 @@ echo $GITHUB_WORKSPACE/$package/bin >>$GITHUB_PATH
 {
   stem=$package-$SYSTEM
 
+  # FIXME: so it doesn't screw with mermaid when it sets up hooks
+  $NIX_DEVELOP_COMMAND true
+
   # mermaid
   MMD=$stem.mmd
   echo MMD=$MMD >>$GITHUB_ENV

@@ -5,12 +5,19 @@ runs:
   using: composite
   steps:
     - shell: bash
-      run: |-
-        remote=
-        if [[ ${{ github.repository}} != commaai/openpilot ]]; then
-          remote=upstream
-          git remote add $remote https://github.com/commaai/openpilot
+      run: |
+
+        # BUG: actions/checkout lfs = true don't work
+
+        git lfs pull
+
+        # check a model exists and is not a pointer
+        model=selfdrive/modeld/models/driving_policy.onnx
+        [[ -f $model ]] || {
+          echo "::error::model $model not found"
+          exit 1
+        }
+        if head -1 $model | grep -q git-lfs; then
+          echo "::error::model $model is an lfs pointer"
+          exit 1
         fi
-        git lfs pull $remote
-        # this is maybe very important
-        git add .
