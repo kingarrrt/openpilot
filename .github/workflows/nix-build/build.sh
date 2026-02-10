@@ -7,10 +7,10 @@ set -euo pipefail
 package=$1
 flags=${2:-}
 
-$NIX build --out-link $package $flags path:.#${package/SYSTEM/$SYSTEM}
+$NIX build --out-link $package $flags .#${package/SYSTEM/$SYSTEM}
 
 # see ../../../flake.nix for explanation
-$NIX profile add path:.#saveFromGC
+$NIX profile add .#saveFromGC
 
 # put it on the PATH
 echo $GITHUB_WORKSPACE/$package/bin >>$GITHUB_PATH
