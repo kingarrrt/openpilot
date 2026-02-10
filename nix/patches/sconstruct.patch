@@ -1,5 +1,5 @@
 diff --git i/SConstruct w/SConstruct
-index 094503cfa..d6965982c 100644
+index 094503cfa..b2c421ba2 100644
 --- i/SConstruct
 +++ w/SConstruct
 @@ -39,14 +39,11 @@ assert arch in [
@@ -37,7 +37,20 @@ index 094503cfa..d6965982c 100644
    ],
    RPATH=[],
    CYTHONCFILESUFFIX=".cpp",
-@@ -180,26 +179,14 @@ Import('_common')
+@@ -168,7 +167,11 @@ Export('envCython', 'np_version')
+ Export('env', 'arch')
+ 
+ # Setup cache dir
+-cache_dir = '/data/scons_cache' if arch == "larch64" else '/tmp/scons_cache'
++cache_dir = os.getenv(
++  'SCONS_CACHE',
++  '/data/scons_cache' if arch == "larch64" else '/tmp/scons-cache'
++)
++print(f"scons: cache dir {cache_dir}")
+ CacheDir(cache_dir)
+ Clean(["."], cache_dir)
+ 
+@@ -180,26 +183,14 @@ Import('_common')
  common = [_common, 'json11', 'zmq']
  Export('common')
  

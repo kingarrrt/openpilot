@@ -43,6 +43,8 @@
 }:
 let
 
+  defaultSconsCache = "/tmp/scons_cache";
+
   inherit
     (loadPyproject {
       src = srcFilter ./.;
@@ -171,7 +173,7 @@ in
 
 # https://nixos.org/manual/nixpkgs/stable/#buildpythonpackage-function
 python.pkgs.buildPythonPackage (
-  drv:
+  finalAttrs:
   (lib.deepMergePythonAttrs pyAttrs {
 
     outputs = [
@@ -240,7 +242,6 @@ python.pkgs.buildPythonPackage (
         + python.sitePackages
         + "/acados_template";
       GLIBC_TUNABLES = "glibc.rtld.execstack=2";
-      SCONS_CACHE = "/tmp/scons_cache";
     }
     // (
       with lib;
@@ -249,6 +250,14 @@ python.pkgs.buildPythonPackage (
         LIBC_PATH = "${getLib glibc}/lib/libc.so.6";
         LLVM_PATH = "${getLib llvm}/lib/libLLVM.so.21.1";
       }
+    )
+    // (
+      # set SCONS_CACHE from environment
+      # NOTE: this is impure, so only works with `nix build --impure`
+      let
+        SCONS_CACHE = builtins.getEnv "SCONS_CACHE";
+      in
+      lib.optionalAttrs (SCONS_CACHE != "") { inherit SCONS_CACHE; }
     );
 
     # HACK: buildPythonPackage.buildPhase uses pypa build to create a wheel,
@@ -265,15 +274,16 @@ python.pkgs.buildPythonPackage (
     buildPhase = ''
 
       # setup scons cache
-      ${lib.optionalString (sconsCache != null) ''
-        cp -ar ${sconsCache} $SCONS_CACHE
-        chmod -R u+w $SCONS_CACHE
+      ${lib.optionalString (sconsCache != null && !finalAttrs ? SCONS_CACHE) ''
+        echo "*** using scons cache ${sconsCache}"
+        cp -ar ${sconsCache} ${defaultSconsCache}
+        chmod -R u+w ${defaultSconsCache}
       ''}
 
       # tinygrad wants home to write a cache
       export HOME=$(mktemp -d)
 
-      scons ${builtins.concatStringsSep " " drv.sconsFlags}
+      scons ${builtins.concatStringsSep " " finalAttrs.sconsFlags}
 
       # clean what we no longer need
       find . -depth \( \
@@ -328,7 +338,7 @@ python.pkgs.buildPythonPackage (
       }
 
       # keep the scons cache
-      cp -ar $SCONS_CACHE $sconsCache
+      cp -ar ''${SCONS_CACHE:-${defaultSconsCache}} $sconsCache
 
       runHook postInstall
     '';
@@ -402,7 +412,7 @@ python.pkgs.buildPythonPackage (
           };
 
           environment.systemPackages = [
-            drv.finalPackage
+            finalAttrs.finalPackage
             cacert
             ffmpeg
             gitMinimal
@@ -420,10 +430,10 @@ python.pkgs.buildPythonPackage (
 
           machine.succeed("ping -c 1 1.1.1.1")
 
-          machine.succeed("cp -ar ${drv.finalPackage} ${drv.pname}")
-          machine.succeed("chmod -R u+w ${drv.pname}")
+          machine.succeed("cp -ar ${finalAttrs.finalPackage} ${finalAttrs.pname}")
+          machine.succeed("chmod -R u+w ${finalAttrs.pname}")
 
-          machine.succeed("cd ${drv.pname} && pytest -v --tb=short")
+          machine.succeed("cd ${finalAttrs.pname} && pytest -v --tb=short")
         '';
       };
 
@@ -436,7 +446,7 @@ python.pkgs.buildPythonPackage (
       test =
         let
           pytest = stdenv.mkDerivation {
-            name = drv.name + "-pytest";
+            name = finalAttrs.name + "-pytest";
             dontUnpack = true;
             dontBuild = true;
             nativeBuildInputs = [ makeWrapper ];
@@ -453,7 +463,7 @@ python.pkgs.buildPythonPackage (
                 } \
                 --prefix PYTHONPATH : ${
                   python.pkgs.makePythonPath (
-                    [ drv.finalPackage ]
+                    [ finalAttrs.finalPackage ]
                     ++ (
                       with pyAttrs; dependencies ++ (with optional-dependencies; testing ++ docs)
                     )
@@ -462,7 +472,7 @@ python.pkgs.buildPythonPackage (
                 --set NIX_TEST 1 \
                 --add-flags --import-mode=importlib \
                 --set GLIBC_TUNABLES glibc.rtld.execstack=2
-              ln -s ${drv.finalPackage}/lib $out/lib
+              ln -s ${finalAttrs.finalPackage}/lib $out/lib
             '';
             meta.mainProgram = "pytest";
           };
@@ -481,7 +491,7 @@ python.pkgs.buildPythonPackage (
               ln -s ${pytestExe} $out/bin/pytest-no-xvfb
               makeWrapper ${lib.getExe xvfb-run} $out/bin/pytest \
                 --add-flags "-s '-screen 0 2160x1080x24' -- ${pytestExe}"
-              ln -s ${drv.finalPackage}/lib $out/lib
+              ln -s ${finalAttrs.finalPackage}/lib $out/lib
             '';
           }
         else
