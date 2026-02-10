@@ -61,7 +61,6 @@ jobs:
   package:
     name: Package
     needs:
-      - check
       - shell
     strategy: &strategy
       fail-fast: false
@@ -90,8 +89,6 @@ jobs:
 
   shell:
     name: Shell
-    needs:
-      - check
     strategy: *strategy
     runs-on: *runs-on
     steps:
@@ -115,7 +112,6 @@ jobs:
   flake:
     name: Flake
     needs:
-      - check
       - package
     permissions:
       contents: write
