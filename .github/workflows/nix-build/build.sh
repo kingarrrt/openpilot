@@ -7,7 +7,12 @@ set -euo pipefail
 package=$1
 flags=${2:-}
 
-$NIX build --out-link $package $flags path:.#${package/SYSTEM/$SYSTEM}
+$NIX build \
+  --builders "" \
+  --eval-store auto \
+  --store ssh-ng://eu.nixbuild.net \
+  --out-link $package $flags \
+  path:.#${package/SYSTEM/$SYSTEM}
 
 # see ../../../flake.nix for explanation
 $NIX profile add path:.#saveFromGC
