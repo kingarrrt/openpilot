@@ -7,6 +7,8 @@ set -euo pipefail
 package=$1
 flags=${2:-}
 
+$NIX flake update cache
+
 $NIX build --out-link $package $flags .#$package
 
 # see ../../../flake.nix for explanation

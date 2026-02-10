@@ -3,7 +3,7 @@
 raygui.overrideAttrs (prev: {
 
   # UPSTREAM: raygui should use pname pattern, then this could use lib.makeLocal
-  name = (lib.localName prev.name) + "-" + prev.version;
+  name = (lib.localName prev.pname or prev.name) + "-" + prev.version;
 
   src = prev.src.overrideAttrs {
     rev = "76b36b597edb70ffaf96f046076adc20d67e7827";
