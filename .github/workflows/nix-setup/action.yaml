@@ -73,8 +73,8 @@ runs:
         EOF
 
         # trust nixbuild.net
-        mkdir -p ~/.ssh
-        ssh-keyscan eu.nixbuild.net >> ~/.ssh/known_hosts
+        # mkdir -p ~/.ssh
+        # ssh-keyscan eu.nixbuild.net >> ~/.ssh/known_hosts
 
         # lfs pull
         # remote=

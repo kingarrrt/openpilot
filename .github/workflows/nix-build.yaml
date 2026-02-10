@@ -66,14 +66,15 @@ jobs:
 
   package:
     name: Package
-    # needs:
-    #   - check
+    needs:
+      - check
+      - shell
     strategy: &strategy
       fail-fast: false
       matrix:
         os:
           - ubuntu-22.04
-          - ubuntu-22.04-arm
+          # - ubuntu-22.04-arm
           # - macos-15
           # - macos-15-intel
     permissions:
