@@ -30,6 +30,15 @@ runs:
           ${{ inputs.nix_config }}
         nix_on_tmpfs: true
 
+    - shell: bash
+      run: |
+        # set env
+        SYSTEM=$(nix eval --impure --raw --expr builtins.currentSystem)
+        cat <<EOF >> $GITHUB_ENV
+        SYSTEM=$SYSTEM
+        SYSTEM_JOB=$SYSTEM-${{ github.job }}
+        EOF
+
     # - uses: cachix/install-nix-action@v31
     #   with:
     #     extra_nix_config: |
@@ -56,36 +65,12 @@ runs:
     # https://github.com/nix-community/cache-nix-action/blob/main/.github/workflows/ci.yaml
     - uses: nix-community/cache-nix-action@v6
       with:
-     # forces garbage collection before saving cache
+        # forces garbage collection before saving cache
         gc-max-store-size: 0
-     # XXX: should it include the workflow yaml?
+        # XXX: should it include the workflow yaml?
         primary-key: nix-${{ env.SYSTEM_JOB }}-${{ hashFiles('**/*.nix', 'flake.lock', 'pyproject.toml')
           }}
         purge: true
         purge-prefixes: nix-${{ env.SYSTEM_JOB }}
         purge-last-accessed: P1D
         restore-prefixes-first-match: nix-${{ env.SYSTEM_JOB }}
-
-    - shell: bash
-      run: |-
-        # set env
-        SYSTEM=$(nix eval --impure --raw --expr builtins.currentSystem)
-        cat <<EOF >> $GITHUB_ENV
-        SYSTEM=$SYSTEM
-        SYSTEM_JOB=$SYSTEM-${{ github.job }}
-        EOF
-
-        # trust nixbuild.net
-        # mkdir -p ~/.ssh
-        # ssh-keyscan eu.nixbuild.net >> ~/.ssh/known_hosts
-
-        # lfs pull
-        # remote=
-        # if [[ ${{ github.repository}} != commaai/openpilot ]]; then
-        #   remote=upstream
-        #   git remote add $remote https://github.com/commaai/openpilot
-        # fi
-        # git lfs pull $remote
-        #
-        #  # XXX: needed?
-        # git add .
