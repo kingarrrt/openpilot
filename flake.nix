@@ -15,7 +15,8 @@
 
     # this is the scons cache from a previous commit,  it is updated by ci after a
     # successful build
-    build-cache.url = "github:kingarrrt/openpilot/c483341061db97a884dd5b9f99c4b37461e2d1f5";
+     
+  "build-cache.url = github:kingarrrt/openpilot/8baf96de1c2e08c7efacf4a2c8045a9bbebea1c2";
 
     # provides saveFromGC, used below
     cache-nix-action = {
