@@ -212,9 +212,7 @@ python.pkgs.buildPythonPackage (
       # }
 
       # /usr/bin/env is not available in the nix sandbox
-      patchShebangs \
-        panda/crypto/sign.py \
-        selfdrive/locationd/models/*_kf.py
+      patchShebangs selfdrive/locationd/models/*_kf.py
     '';
 
     patches = [

@@ -71,10 +71,7 @@
       flake = false;
     };
 
-    build-cache-x86_64-linux = {
-      url = "path:/nix/store/rqbgzakl5ld1d9z95p47mjcsfwffia9m-python3.12-openpilot-0.1.0-sconsCache";
-      flake = false;
-    };
+    build-cache.url = "github:kingarrrt/openpilot/c3a2287899aff540a077bb3dec82c8540f58e131?lfs=1";
 
   };
 
@@ -118,7 +115,7 @@
           default = openpilot;
 
           openpilot-dev = openpilot.override {
-            sconsCache = inputs."build-cache-${system}" or null;
+            inherit (inputs.build-cache.packages.${system}.default) sconsCache;
           };
 
           # for dev:

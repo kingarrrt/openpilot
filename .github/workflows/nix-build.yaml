@@ -130,13 +130,12 @@ jobs:
       - uses: *checkout
       - shell: bash
         run: |
-          sed -i 's|\(build-cache\.url\).*| \
-            \1 = "github:${{ github.repository }}/${{ github.sha }}";|' \
-            flake.nix
+          sed -i 's|\(build-cache\.url = "github:[^/]*/[^/]*\/\)[0-9a-f]\{40\}\(\?lfs=1"\)|\1${{ github.sha }}\2|' flake.nix
+          nix flake update build-cache
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: '[ci] update flake build-cache commit'
-          file_pattern: flake.nix
+          file_pattern: flake.*
 
   # build_impure:
   #   name: Build (Impure)
