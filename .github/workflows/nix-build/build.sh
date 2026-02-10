@@ -23,7 +23,7 @@ echo $GITHUB_WORKSPACE/$package/bin >>$GITHUB_PATH
   MMD=$stem.mmd
   echo MMD=$MMD >>$GITHUB_ENV
   # $NIX_DEVELOP_COMMAND scripts/nix2mermaid.py $package >$MMD
-  scripts/nix2mermaid.py $package >$MMD
+  scripts/nix2mermaid.py --min-size 10 $package >$MMD
 
   # svg
   SVG=$stem.svg
